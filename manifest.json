@@ -1,7 +1,7 @@
 {
-  "name": "PitchView",
-  "short_name": "PitchView",
-  "description": "Soccer referee evaluation tool for Colorado Soccer Association",
+  "name": "PitchEval",
+  "short_name": "PitchEval",
+  "description": "Soccer referee evaluation tool for US Soccer",
   "start_url": "./",
   "display": "standalone",
   "orientation": "portrait",

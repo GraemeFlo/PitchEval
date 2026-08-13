@@ -4825,6 +4825,9 @@ function editLog(id) {
   const entry = state.log.find(e => e.id === id);
   if (!entry) return;
 
+  // Close the Match Log sheet so the edit form beneath it is actually usable
+  closeSheet('log');
+
   // Structured re-edit: reopen the original event form pre-filled
   if (entry.edit && entry.edit.kind === 'event') {
     state._editingLogId = id;

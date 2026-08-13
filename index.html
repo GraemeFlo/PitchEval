@@ -4370,17 +4370,17 @@ function saveEvent() {
   document.getElementById('scoreDisplay').textContent = `${state.score.home} – ${state.score.away}`;
   syncLiveActivity();
 
-  // Editing: update the existing entry in place and stop (no new entry, no auto-chains)
+  // Editing: update the existing entry in place, then fall through to the
+  // same auto-chain logic below as a fresh entry — so e.g. flipping a foul
+  // to Reckless during an edit still opens the Yellow Card step.
   if (editingId) {
     const entry = state.log.find(e => e.id === editingId);
     if (entry) { entry.icon = meta.icon; entry.desc = desc; entry.flagged = flagged; entry.edit = editData; }
     state._editingLogId = null;
-    closeEventModal();
     renderLog();
-    return;
+  } else {
+    addLogItem(meta.icon, desc, getCurrentTime(), flagged, editData);
   }
-
-  addLogItem(meta.icon, desc, getCurrentTime(), flagged, editData);
   closeEventModal();
 
   // Auto-open CMI Red Card form after logging a red card
@@ -4940,7 +4940,9 @@ function buildRatingsPanel(idx) {
   let html = `<div class="card">`;
 
   criteria.forEach(crit => {
-    const val = off.ratings[crit] || '';
+    // Default every unset criterion to 8.3 rather than leaving it blank
+    if (!off.ratings[crit]) off.ratings[crit] = '8.3';
+    const val = off.ratings[crit];
     const options = `<option value="">— select —</option>` +
       SCORE_BANDS.map(b => `<option value="${b.value}" ${val === b.value ? 'selected' : ''}>${b.label}</option>`).join('');
     html += `<div class="rating-item">
@@ -5167,8 +5169,8 @@ Generate coaching feedback for all ${offData.length} officials.`;
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
+        model: 'claude-sonnet-5',
+        max_tokens: 8000,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
       })
@@ -5177,9 +5179,18 @@ Generate coaching feedback for all ${offData.length} officials.`;
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error?.message || 'API error');
 
+    if (data.stop_reason === 'max_tokens') {
+      throw new Error('The response was too long and got cut off (this match likely has a lot of officials/incidents). Tap Regenerate to try again.');
+    }
+
     const raw = data.content.map(b => b.text||'').join('');
     const clean = raw.replace(/```json|```/g,'').trim();
-    const parsed = JSON.parse(clean);
+    let parsed;
+    try {
+      parsed = JSON.parse(clean);
+    } catch (parseErr) {
+      throw new Error('The AI response could not be read (it may have been truncated). Tap Regenerate to try again.');
+    }
     // Fresh generation — clear any prior translation state
     state._feedbackEnglish = null;
     state._feedbackLangLabel = null;
@@ -5326,8 +5337,8 @@ async function translateFeedback() {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
+        model: 'claude-sonnet-5',
+        max_tokens: 8000,
         system: systemPrompt,
         messages: [{ role: 'user', content: JSON.stringify(payload) }]
       })
@@ -5335,9 +5346,18 @@ async function translateFeedback() {
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error?.message || 'Translation failed');
 
+    if (data.stop_reason === 'max_tokens') {
+      throw new Error('The translation was too long and got cut off. Please try again.');
+    }
+
     const raw = data.content.map(b => b.text || '').join('');
     const clean = raw.replace(/```json|```/g, '').trim();
-    const translated = JSON.parse(clean);
+    let translated;
+    try {
+      translated = JSON.parse(clean);
+    } catch (parseErr) {
+      throw new Error('The translation response could not be read (it may have been truncated). Please try again.');
+    }
 
     const merged = officials.map((off, i) => {
       const t = translated[i] || translated.find(x => x.role === off.role) || {};
@@ -6326,6 +6346,8 @@ function confirmFinalize() {
   closeFinalizeModal();
   // Automatically save the finalized match to the library
   saveCurrentMatchToLibrary(true);
+  // Clear the Match tab so it's ready for the next match
+  resetMatchTabForNewMatch();
   // Prompt to switch to ratings
   setTimeout(() => {
     const tabs = document.querySelectorAll('.tab');
@@ -7575,7 +7597,7 @@ async function autoPopulateWeather() {
 document.addEventListener('DOMContentLoaded', restoreAutosaveIfPresent);
 
 // Pre-fill evaluator from saved profile
-(function() {
+function prefillEvaluatorFromProfile() {
   try {
     const name = localStorage.getItem('pitcheval-coach-name');
     const role = localStorage.getItem('pitcheval-coach-role');
@@ -7583,19 +7605,52 @@ document.addEventListener('DOMContentLoaded', restoreAutosaveIfPresent);
     if (role) { const el = document.getElementById('mi_eval_role'); if(el) el.value = role; }
     if (name || role) liveMatchUpdate();
   } catch(e) {}
-})();
+}
+prefillEvaluatorFromProfile();
 
 buildRatingsPanel(0);
 updateHeader();
 // Auto-populate today's date in Match Details (still editable)
-(function() {
+function autoPopulateDate() {
   const el = document.getElementById('mi_date');
   if (el && !el.value) {
     const d = new Date();
     el.value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     liveMatchUpdate();
   }
-})();
+}
+autoPopulateDate();
+
+// Clear the Match tab back to a fresh, ready-to-use state after a match is
+// finalized — reapplies the same "today's date" / coach-profile / weather
+// conveniences a first launch gets, rather than leaving the form fully blank.
+function resetMatchTabForNewMatch() {
+  state.match = {
+    home: 'Home', away: 'Away', comp: '', level: '', date: '', venue: '',
+    r: 'Referee', ar1: 'AR1', ar2: 'AR2', fourth: '',
+    kickoff: '', endtime: '', age: '', gender: '', round: '',
+    halfLength: '45', extraTime: 'No', penalties: 'No', etHalfLength: '15',
+    field: '', city: '', weather: '', surface: '',
+    r_badge: '', r_cert: '',
+    ar1_cert: '', ar2_cert: '', fourth_cert: '',
+    evaluator: '', eval_id: '', eval_role: '',
+  };
+  state.finalized = false;
+  state._librarySessionId = null;
+
+  hydrateMatchForm();
+  autoPopulateDate();
+  prefillEvaluatorFromProfile();
+  autoPopulateWeather();
+  updateHeader();
+
+  const btn = document.querySelector('.btn-finalize');
+  if (btn) {
+    btn.textContent = '🏁 Finalize Match';
+    btn.classList.remove('finalized');
+    btn.disabled = false;
+  }
+}
 // Reconcile the durable native store with localStorage (restores library if evicted)
 initLibraryStorage();
 // Pull + merge match metadata from iCloud, and listen for changes from other devices

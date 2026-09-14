@@ -4360,12 +4360,16 @@ function logEvent(type) {
   document.getElementById('eventModal').classList.add('open');
 }
 
-function closeEventModal() { document.getElementById('eventModal').classList.remove('open'); state.pendingEvent = null; state._editingLogId = null; }
+function closeEventModal() {
+  const pend = state.pendingEvent;
+  document.getElementById('eventModal').classList.remove('open');
+  state.pendingEvent = null;
+  state._editingLogId = null;
+  // Dismissing the optional foul-detail step of a red-card sequence must not
+  // skip the Critical Match Incident form — a send-off always needs recording.
+  if (pend && pend.thenRedCMI) setTimeout(() => openCMI('red_card'), 200);
+}
 
-// Undo a structured event entry's counted effects (counts, per-team foul
-// tally, per-period foul tally, score). Shared by the edit-reversal path in
-// saveEvent() and by deleteLog() — without this, editing or deleting an
-// event used to leave the header tallies permanently out of sync.
 // Cautions for C1 (unsporting behaviour) and C3 (persistent infringement)
 // arise from a foul, so the foul is recorded automatically. C2 dissent,
 // C4 delaying the restart, C5 distance, and C6/C7 entering/leaving are not
@@ -4374,10 +4378,18 @@ function cautionImpliesFoul(offense) {
   return /^C[13] - /.test(offense || '');
 }
 
-// Record the foul that earned a caution, so the foul count is correct even if
+// Same idea for send-offs: S1 (serious foul play) and S4 (DOGSO, by foul or by
+// handball) are fouls. S2 violent conduct, S3 spitting, S5 offensive language
+// and S7 biting are misconduct rather than tallied fouls, and S6 second caution
+// already had its foul recorded alongside the first yellow.
+function sendOffImpliesFoul(offense) {
+  return /^S(1|4) - /.test(offense || '');
+}
+
+// Record the foul that earned a card, so the foul count is correct even if
 // the coach dismisses the follow-up detail form. Returns the new log entry id
 // so the detail form can EDIT this entry rather than create a duplicate.
-function recordFoulForCaution(team, player, period) {
+function recordFoulForCard(team, player, period) {
   state.counts.foul++;
   const cnt = document.getElementById('cnt-foul');
   if (cnt) cnt.textContent = state.counts.foul;
@@ -4396,6 +4408,10 @@ function recordFoulForCaution(team, player, period) {
   return addLogItem(EVENT_META.foul.icon, desc, getCurrentTime(), false, editData);
 }
 
+// Undo a structured event entry's counted effects (counts, per-team foul
+// tally, per-period foul tally, score). Shared by the edit-reversal path in
+// saveEvent() and by deleteLog() — without this, editing or deleting an
+// event used to leave the header tallies permanently out of sync.
 function reverseEventEffects(o) {
   if (!o || o.kind !== 'event') return;
   if (state.counts[o.type] > 0) {
@@ -4419,7 +4435,8 @@ function reverseEventEffects(o) {
 function saveEvent() {
   const type = state.pendingEvent.type;
   const seqThenCMI = !!state.pendingEvent.thenCMI;   // foul opened as part of a yellow-card sequence
-  const seqFromFoul = !!state.pendingEvent.fromFoul; // yellow opened from a reckless foul
+  const seqThenRedCMI = !!state.pendingEvent.thenRedCMI; // foul opened as part of a red-card sequence
+  const seqFromFoul = !!state.pendingEvent.fromFoul; // card opened from a foul already recorded
   const seqFromPK = !!state.pendingEvent.fromPK;     // foul opened from a penalty kick
   const seqPKIncorrect = !!state.pendingEvent.pkIncorrect; // that PK was an incorrect decision
   const meta = EVENT_META[type];
@@ -4452,6 +4469,9 @@ function saveEvent() {
   // Preserve the period the event originally happened in when editing (an edit
   // made later in the match shouldn't move a foul into the current period's tally)
   const eventPeriod = (oldEntry && oldEntry.edit && oldEntry.edit.period) || state.clock.period;
+  // The offense this entry carried before the edit — used below so re-editing a
+  // card doesn't auto-record its foul a second time
+  const oldOffense = (oldEntry && oldEntry.edit && oldEntry.edit.offense) || '';
   const editData = { kind: 'event', type, team, side, foulType, foulNature, offsideType, offense, player, scorer, pkRes, note, period: eventPeriod, attachments: _pendingAttachments.slice() };
 
   // When editing, first reverse the original entry's counted effects
@@ -4491,11 +4511,30 @@ function saveEvent() {
   } else {
     addLogItem(meta.icon, desc, getCurrentTime(), flagged, editData);
   }
+  // The chain logic below opens the follow-up step itself, so clear the sequence
+  // flag first — closeEventModal() only acts on it when the form is dismissed.
+  if (state.pendingEvent) state.pendingEvent.thenRedCMI = false;
   closeEventModal();
 
-  // Auto-open CMI Red Card form after logging a red card
+  // A red card → record the foul that caused it, then open the CMI Red Card form
   if (type === 'red') {
-    setTimeout(() => openCMI('red_card'), 200);
+    // Don't re-record on an edit if the previous version was already a foul offense
+    const foulAlreadyRecorded = seqFromFoul || (editingId && sendOffImpliesFoul(oldOffense));
+    if (!foulAlreadyRecorded && sendOffImpliesFoul(offense)) {
+      // Record the foul straight away so the count is right even if the detail
+      // form is dismissed, then open that same entry for optional detail
+      // (editing it, so the foul is never counted twice).
+      const foulId = recordFoulForCard(team, player, eventPeriod);
+      setTimeout(() => {
+        editLog(foulId);
+        if (state.pendingEvent) state.pendingEvent.thenRedCMI = true;
+        const t = document.getElementById('eventModalTitle');
+        if (t) t.textContent = '🟠 Foul — add detail (optional)';
+      }, 220);
+    } else {
+      // Violent conduct, spitting, language, biting, second caution — no foul to add
+      setTimeout(() => openCMI('red_card'), 200);
+    }
   }
 
   // A penalty kick → open the Foul form to record the foul involved.
@@ -4513,9 +4552,14 @@ function saveEvent() {
     }, 200);
   }
 
+  // Foul that was opened as part of a red-card sequence → continue to the
+  // Red Card CMI form (skip the auto-chains to avoid re-opening the card forms)
+  if (type === 'foul' && seqThenRedCMI) {
+    setTimeout(() => openCMI('red_card'), 220);
+  }
   // Foul that was opened as part of a yellow-card sequence → go straight to the CMI menu
   // (skip the reckless/excessive auto-chains to avoid re-opening the card forms)
-  if (type === 'foul' && seqThenCMI) {
+  else if (type === 'foul' && seqThenCMI) {
     setTimeout(() => openSheet('cmi'), 220);
   }
   // Foul that was opened from a penalty kick → if the PK was incorrect, open the CRE form
@@ -4547,6 +4591,7 @@ function saveEvent() {
     const carryTeam = team, carryPlayer = player;
     setTimeout(() => {
       logEvent('red');
+      if (state.pendingEvent) state.pendingEvent.fromFoul = true; // foul already recorded
       if (carryTeam === 'home' || carryTeam === 'away') {
         const tb = document.querySelector(`.radio-btn[data-target="ev_team"][data-val="${carryTeam}"]`);
         if (tb) selectRadio(tb);
@@ -4563,14 +4608,16 @@ function saveEvent() {
 
   // A yellow card → record the foul that caused it, then the CMI
   if (type === 'yellow') {
-    if (seqFromFoul) {
+    // Don't re-record on an edit if the previous version was already a foul offense
+    const foulAlreadyRecorded = seqFromFoul || (editingId && cautionImpliesFoul(oldOffense));
+    if (foulAlreadyRecorded) {
       // The foul was already recorded (reckless-foul chain) → go straight to the CMI menu
       setTimeout(() => openSheet('cmi'), 220);
     } else if (cautionImpliesFoul(offense)) {
       // Record the foul straight away so the count is right even if the detail
       // form is dismissed, then open that same entry for optional detail
       // (editing it, so the foul is never counted twice).
-      const foulId = recordFoulForCaution(team, player, eventPeriod);
+      const foulId = recordFoulForCard(team, player, eventPeriod);
       setTimeout(() => {
         editLog(foulId);
         if (state.pendingEvent) state.pendingEvent.thenCMI = true;

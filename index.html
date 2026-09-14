@@ -3956,8 +3956,10 @@ function setPeriod(p) {
     psoTracker.style.display = 'none';
   }
 
-  // Auto-open the Half Time / Full Time summary
-  if (p === 'ht' || p === 'ft') {
+  // Auto-open the summary at every period boundary, extra time included —
+  // reaching Kicks From The Mark closes out ET 2nd half the same way Full Time
+  // closes out the 2nd half
+  if (SUMMARY_BOUNDARIES[p]) {
     setTimeout(() => showPeriodSummary(p), 250);
   }
 
@@ -6620,18 +6622,39 @@ function closeFinalizeModal() {
 }
 
 // ══ HALF TIME / FULL TIME AUTO-SUMMARY ══
-// Snapshots are taken at kickoff and at each half boundary so each summary
-// can show "this half" stats as well as the running match total.
+// The period boundaries that open a summary, each naming the period that just
+// ended. Reaching a boundary snapshots the running totals, and the next
+// boundary subtracts that snapshot to get "this period" figures — so extra
+// time gets the same treatment the two regulation halves always had.
+const SUMMARY_BOUNDARIES = {
+  ht:   { title: '⏸ Half Time Summary',           label: '1st Half' },
+  ft:   { title: '🏁 Full Time Summary',          label: '2nd Half' },
+  etht: { title: '⏸ ET Half Time Summary',        label: 'ET 1st Half' },
+  pso:  { title: '🎯 End of Extra Time Summary',  label: 'ET 2nd Half' },
+};
+const SUMMARY_ORDER = ['ht', 'ft', 'etht', 'pso'];
+
+// Snapshots are taken at each boundary so each summary can show "this period"
+// stats as well as the running match total.
 function showPeriodSummary(periodJustEnded) {
+  const boundary = SUMMARY_BOUNDARIES[periodJustEnded];
+  if (!boundary) return;
+
   const m = state.match;
   const c = state.counts;
   const snaps = state._periodSnapshots || {};
-  const prev = snaps[periodJustEnded === 'ht' ? 'kickoff' : 'ht'] || { counts: {}, score: { home: 0, away: 0 }, fouls: { home: 0, away: 0 } };
+
+  // Walk back to the nearest earlier boundary that actually has a snapshot, so
+  // a skipped period degrades to a wider span rather than to whole-match
+  // numbers mislabelled as one half
+  const order = SUMMARY_ORDER;
+  let prev = null;
+  for (let i = order.indexOf(periodJustEnded) - 1; i >= 0 && !prev; i--) prev = snaps[order[i]] || null;
+  prev = prev || { counts: {}, score: { home: 0, away: 0 }, fouls: { home: 0, away: 0 } };
   const delta = (key) => (c[key] || 0) - (prev.counts[key] || 0);
 
-  const title = periodJustEnded === 'ht' ? '⏸ Half Time Summary' : '🏁 Full Time Summary';
-  const halfLabel = periodJustEnded === 'ht' ? '1st Half' : '2nd Half';
-  document.getElementById('periodSummaryTitle').textContent = title;
+  const halfLabel = boundary.label;
+  document.getElementById('periodSummaryTitle').textContent = boundary.title;
 
   const homeFoulsThis = (state.foulsByTeam?.home || 0) - (prev.fouls?.home || 0);
   const awayFoulsThis = (state.foulsByTeam?.away || 0) - (prev.fouls?.away || 0);
@@ -6643,7 +6666,7 @@ function showPeriodSummary(periodJustEnded) {
     <div class="finalize-score">${state.score.home} – ${state.score.away}</div>
     <div class="section-label" style="margin-top:4px;">${halfLabel}</div>
     <div class="card" style="margin-bottom:14px;">
-      <div class="finalize-stat-row"><span class="finalize-stat-label">Goals This Half</span><span class="finalize-stat-val">${homeScoreThis} – ${awayScoreThis}</span></div>
+      <div class="finalize-stat-row"><span class="finalize-stat-label">Goals in ${halfLabel}</span><span class="finalize-stat-val">${homeScoreThis} – ${awayScoreThis}</span></div>
       <div class="finalize-stat-row"><span class="finalize-stat-label">Fouls</span><span class="finalize-stat-val">${m.home} ${homeFoulsThis} — ${awayFoulsThis} ${m.away}</span></div>
       <div class="finalize-stat-row"><span class="finalize-stat-label">Yellow Cards</span><span class="finalize-stat-val">${delta('yellow')}</span></div>
       <div class="finalize-stat-row"><span class="finalize-stat-label">Red Cards</span><span class="finalize-stat-val">${delta('red')}</span></div>

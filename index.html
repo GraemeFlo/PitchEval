@@ -1797,6 +1797,45 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 .foul-half-cell { display: flex; align-items: baseline; gap: 5px; }
 .foul-half-lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
 .foul-half-val { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 600; color: var(--muted); }
+
+/* ── LIGHT-MODE SCOREBOARD ──
+   The scoreboard styles above hard-code a dark navy gradient, a light-on-dark
+   team name, and white-based dividers. Those don't respond to the theme vars,
+   so in light mode the box stayed dark while its text switched to dark colours
+   and became unreadable. Re-theme those specific properties here. */
+[data-theme="light"] .scoreboard,
+[data-theme="auto"]  .scoreboard {
+  background: linear-gradient(160deg, #ffffff 0%, #eef1f7 100%);
+  border-color: rgba(200,127,0,0.35);
+  box-shadow: 0 4px 18px rgba(20,30,60,0.10), inset 0 1px 0 rgba(255,255,255,0.8), 0 0 0 1px rgba(200,127,0,0.10);
+}
+[data-theme="light"] .team-name,
+[data-theme="auto"]  .team-name { color: #55607a; }
+
+[data-theme="light"] .score-display,
+[data-theme="auto"]  .score-display { text-shadow: none; }
+
+[data-theme="light"] .period-progress,
+[data-theme="auto"]  .period-progress,
+[data-theme="light"] .foul-tally,
+[data-theme="auto"]  .foul-tally { border-top-color: rgba(20,30,60,0.10); }
+
+[data-theme="light"] .period-pip,
+[data-theme="auto"]  .period-pip { background: rgba(20,30,60,0.12); }
+
+/* "auto" follows the system — restore the dark treatment when the OS is dark */
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] .scoreboard {
+    background: linear-gradient(160deg, #0e1525 0%, #080e1a 100%);
+    border-color: rgba(245,166,35,0.25);
+    box-shadow: 0 6px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05), 0 0 0 1px rgba(245,166,35,0.08);
+  }
+  [data-theme="auto"] .team-name { color: #8899bb; }
+  [data-theme="auto"] .score-display { text-shadow: 0 0 30px rgba(245,166,35,0.5), 0 0 60px rgba(245,166,35,0.2); }
+  [data-theme="auto"] .period-progress,
+  [data-theme="auto"] .foul-tally { border-top-color: rgba(255,255,255,0.06); }
+  [data-theme="auto"] .period-pip { background: rgba(255,255,255,0.08); }
+}
 .score-btns { gap: 5px; margin-top: 4px; }
 .score-btn {
   width: 32px;

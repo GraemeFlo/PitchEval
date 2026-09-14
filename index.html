@@ -3442,6 +3442,10 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
       <div class="field-label">Description</div>
       <textarea class="field-input" id="editLogDesc" rows="4" placeholder="Event description..."></textarea>
     </div>
+    <div class="field-group">
+      <div class="field-label">Player # (optional)</div>
+      <input class="field-input" id="editLogPlayer" type="text" inputmode="numeric" placeholder="e.g. 7">
+    </div>
     <button type="button" class="flag-toggle" id="editLog_flag" onclick="toggleFlag(this)" style="margin-bottom:12px;">
       <span class="flag-icon">🏴</span> Flag for Discussion
     </button>
@@ -4309,7 +4313,9 @@ function logEvent(type) {
           <button type="button" class="radio-btn" data-target="ev_offside_type" data-val="Interfering with an opponent" onclick="selectRadio(this)">Interfering with an opponent</button>
           <button type="button" class="radio-btn" data-target="ev_offside_type" data-val="Interfering with play" onclick="selectRadio(this)">Interfering with play</button>
           <button type="button" class="radio-btn" data-target="ev_offside_type" data-val="Gaining an advantage" onclick="selectRadio(this)">Gaining an advantage</button>
-        </div></div>`;
+        </div></div>
+      <div class="field-group"><div class="field-label">Player # (optional)</div>
+        <input class="field-input" id="ev_player" type="text" inputmode="numeric" placeholder="e.g. 7"></div>`;
     }
 
     if (type === 'foul') {
@@ -5060,6 +5066,12 @@ function editLog(id) {
   document.getElementById('editLogId').value = id;
   document.getElementById('editLogTime').value = entry.time || '';
   document.getElementById('editLogDesc').value = entry.desc || '';
+  // Player # — held on the entry, and shown as a trailing "#7" on the line the
+  // same way structured events write it. Fall back to reading that token off
+  // the description so entries logged before this field existed round-trip
+  // without the number being duplicated on save.
+  _editLogPlayerWas = entry.player || (String(entry.desc || '').match(/#(\d+)\s*$/) || [])[1] || '';
+  document.getElementById('editLogPlayer').value = _editLogPlayerWas;
   // Sync the flag toggle to the entry's current state
   const flagBtn = document.getElementById('editLog_flag');
   flagBtn.classList.toggle('active', !!entry.flagged);
@@ -5072,14 +5084,31 @@ function editLog(id) {
 
 function closeEditLog() { document.getElementById('editLogModal').classList.remove('open'); }
 
+// The player number this entry showed when the edit form was opened, so saving
+// replaces it rather than appending a second one
+let _editLogPlayerWas = '';
+
 function saveLogEdit() {
   const id = Number(document.getElementById('editLogId').value);
   const entry = state.log.find(e => e.id === id);
   if (!entry) { closeEditLog(); return; }
   entry.time = document.getElementById('editLogTime').value.trim();
-  entry.desc = document.getElementById('editLogDesc').value.trim();
+
+  const player = (document.getElementById('editLogPlayer')?.value || '').trim().replace(/^#/, '');
+  let desc = document.getElementById('editLogDesc').value.trim();
+  // Remove the number this entry already carried — but only when it really is
+  // the trailing token, so a "#" the coach typed mid-sentence is left alone
+  if (_editLogPlayerWas) {
+    const tail = '#' + _editLogPlayerWas;
+    if (desc.endsWith(tail)) desc = desc.slice(0, -tail.length).trimEnd();
+  }
+  if (player) desc += ` #${player}`;
+  entry.player = player;
+  entry.desc = desc.trim();
+
   entry.flagged = document.getElementById('editLog_flag').classList.contains('active');
   entry._ts = Date.now();
+  _editLogPlayerWas = '';
   closeEditLog();
   renderLog();
 }
@@ -6147,6 +6176,9 @@ function handleImportBackupChange(ev) {
     if (!proceed) return;
 
     setLibrary(merged);
+    // An explicit import is a deliberate restore — let it overrule any earlier
+    // deletion of the same fixtures
+    untombstoneScheduleEntries(schedToAdd.map(s => s.id));
     setSchedule(mergedSchedule);
 
     if (data.profile) {
@@ -7151,6 +7183,14 @@ async function initLibraryStorage() {
 // Same durable-storage + iCloud-sync pattern as the Match Library, minus the
 // attachment handling — schedule entries are lightweight text-only records.
 const SCHEDULE_KEY = 'pitcheval-schedule';
+// Deleting a fixture has to be remembered, not just applied. "Absent from the
+// other device's copy" is indistinguishable from "they haven't seen it yet", so
+// without this the other device's next push simply puts the fixture back.
+// Kept in its OWN key rather than folded into the schedule payload, so older
+// builds — which expect a bare array there — keep syncing normally.
+const SCHEDULE_TOMB_KEY = 'pitcheval-schedule-deleted';
+const SCHEDULE_TOMB_TTL_MS = 180 * 24 * 60 * 60 * 1000; // ~2 seasons, then forget
+
 function getSchedule() { try { return JSON.parse(localStorage.getItem(SCHEDULE_KEY) || '[]'); } catch (e) { return []; } }
 function setSchedule(arr) {
   const json = JSON.stringify(arr);
@@ -7160,31 +7200,87 @@ function setSchedule(arr) {
   pushScheduleToCloud();
 }
 
+// Expired tombstones are dropped on read, so the record can't grow without end
+function getScheduleTombstones() {
+  let raw = {};
+  try { raw = JSON.parse(localStorage.getItem(SCHEDULE_TOMB_KEY) || '{}') || {}; } catch (e) { raw = {}; }
+  const cutoff = Date.now() - SCHEDULE_TOMB_TTL_MS;
+  const out = {};
+  Object.keys(raw).forEach(id => { if ((raw[id] || 0) > cutoff) out[id] = raw[id]; });
+  return out;
+}
+
+function setScheduleTombstones(t) {
+  const json = JSON.stringify(t);
+  try { localStorage.setItem(SCHEDULE_TOMB_KEY, json); } catch (e) {}
+  const p = _prefsPlugin();
+  if (p) { try { p.set({ key: SCHEDULE_TOMB_KEY, value: json }); } catch (e) {} }
+  const kv = _cloudKVPlugin();
+  if (kv) { try { kv.set({ key: SCHEDULE_TOMB_KEY, value: json }); } catch (e) {} }
+}
+
+function tombstoneScheduleEntry(id) {
+  const t = getScheduleTombstones();
+  t[String(id)] = Date.now();
+  setScheduleTombstones(t);
+}
+
+// Saving or importing a fixture is an explicit "I want this" — it must be able
+// to overrule an earlier deletion of the same id
+function untombstoneScheduleEntries(ids) {
+  const t = getScheduleTombstones();
+  let changed = false;
+  (ids || []).forEach(id => { if (String(id) in t) { delete t[String(id)]; changed = true; } });
+  if (changed) setScheduleTombstones(t);
+}
+
 async function pushScheduleToCloud() {
   const kv = _cloudKVPlugin();
   if (!kv) return;
   try { await kv.set({ key: SCHEDULE_KEY, value: JSON.stringify(getSchedule()) }); } catch (e) {}
 }
 
-function mergeSchedules(local, cloud) {
+function mergeSchedules(local, cloud, deleted) {
+  const dead = deleted || {};
   const byId = new Map();
-  (local || []).forEach(s => byId.set(s.id, s));
+  (local || []).forEach(s => { if (!(String(s.id) in dead)) byId.set(String(s.id), s); });
   (cloud || []).forEach(cs => {
-    const ls = byId.get(cs.id);
-    if (!ls || (cs.updatedAt || 0) > (ls.updatedAt || 0)) byId.set(cs.id, cs);
+    const key = String(cs.id);
+    if (key in dead) return;                   // deleted here — never resurrect it
+    const ls = byId.get(key);
+    if (!ls || (cs.updatedAt || 0) > (ls.updatedAt || 0)) byId.set(key, cs);
   });
   return Array.from(byId.values()).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+}
+
+function mergeScheduleTombstones(localT, cloudT) {
+  const out = Object.assign({}, localT || {});
+  Object.keys(cloudT || {}).forEach(id => {
+    if (!(id in out) || cloudT[id] > out[id]) out[id] = cloudT[id];
+  });
+  return out;
 }
 
 async function pullAndMergeScheduleFromCloud() {
   const kv = _cloudKVPlugin();
   if (!kv) return;
   try {
+    // Take the other device's deletions on board BEFORE merging its fixtures,
+    // so something it deleted doesn't briefly reappear here
+    let cloudTomb = {};
+    try {
+      const tr = await kv.get({ key: SCHEDULE_TOMB_KEY });
+      if (tr && tr.value) cloudTomb = JSON.parse(tr.value) || {};
+    } catch (e) {}
+    const localTomb = getScheduleTombstones();
+    const tomb = mergeScheduleTombstones(localTomb, cloudTomb);
+    if (JSON.stringify(tomb) !== JSON.stringify(localTomb)) setScheduleTombstones(tomb);
+
     const res = await kv.get({ key: SCHEDULE_KEY });
     if (!res || !res.value) return;
     const cloud = JSON.parse(res.value);
     const local = getSchedule();
-    const merged = mergeSchedules(local, cloud);
+    const merged = mergeSchedules(local, cloud, tomb);
     if (JSON.stringify(merged) !== JSON.stringify(local)) {
       setSchedule(merged);
       const panel = document.getElementById('librarySegUpcoming');
@@ -7196,6 +7292,16 @@ async function pullAndMergeScheduleFromCloud() {
 async function initScheduleStorage() {
   const p = _prefsPlugin();
   if (p) {
+    // Restore the deletion record too if iOS evicted localStorage — without it
+    // every fixture deleted on this device would come back on the next merge
+    try {
+      const tr = await p.get({ key: SCHEDULE_TOMB_KEY });
+      if (tr && tr.value) {
+        const native = JSON.parse(tr.value) || {};
+        const merged = mergeScheduleTombstones(getScheduleTombstones(), native);
+        try { localStorage.setItem(SCHEDULE_TOMB_KEY, JSON.stringify(merged)); } catch (e) {}
+      }
+    } catch (e) {}
     try {
       let local = [];
       try { local = JSON.parse(localStorage.getItem(SCHEDULE_KEY) || '[]'); } catch (e) {}
@@ -7269,6 +7375,7 @@ function saveScheduleEntry() {
   const list = getSchedule();
   const idx = list.findIndex(s => String(s.id) === String(entry.id));
   if (idx >= 0) list[idx] = entry; else list.push(entry);
+  untombstoneScheduleEntries([entry.id]); // saving overrules an earlier deletion
   setSchedule(list);
   closeScheduleModal();
   renderSchedule();
@@ -7278,12 +7385,14 @@ function saveScheduleEntry() {
 function deleteScheduleEntryFromModal() {
   const id = document.getElementById('schedId').value;
   if (!id) return;
+  tombstoneScheduleEntry(id);
   setSchedule(getSchedule().filter(s => String(s.id) !== String(id)));
   closeScheduleModal();
   renderSchedule();
 }
 
 function deleteScheduleEntry(id) {
+  tombstoneScheduleEntry(id);
   setSchedule(getSchedule().filter(s => String(s.id) !== String(id)));
   renderSchedule();
 }

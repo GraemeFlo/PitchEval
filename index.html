@@ -1871,12 +1871,16 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 .overall-sub { color: var(--text); opacity: 0.75; }
 
 @media (prefers-color-scheme: dark) {
+  /* These must mirror the dark palette exactly. They are spelled out rather
+     than inherited because [data-theme="auto"] sets the light values
+     unconditionally above, and a value missing here leaves auto mode showing a
+     light-theme colour on a dark background. */
   [data-theme="auto"] {
     --gold: #7fb2f5;
     --yellow: #e3b341;
-    --blue: #58a6ff;
-    --green: #3fb950;
-    --red: #f85149;
+    --blue: #8cc0ff;
+    --green: #63de83;
+    --red: #ff9090;
     --muted2: #78828f;
   }
   [data-theme="auto"] .clock-btn.primary { color: #08090e; }

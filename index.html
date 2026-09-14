@@ -2153,7 +2153,17 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
   -webkit-user-select: none;
 }
 .period-btn:active { transform: scale(0.96); opacity: 0.7; }
-.period-btn.active { background: var(--blue-dim); color: var(--blue); }
+
+/* All period labels share the body colour — ET and Kicks From The Mark used
+   to tint their text blue and red, and the selected period tinted its own.
+   Selection is carried by the fill and the border instead, so the row reads
+   as one set rather than three. */
+.period-btn,
+.period-btn.et,
+.period-btn.pso-btn-period { color: var(--text); }
+.period-btn.active { background: var(--blue-dim); border-color: var(--blue); color: var(--text); }
+.period-btn.et.active { background: var(--blue-dim); border-color: var(--blue); color: var(--text); }
+.period-btn.pso-btn-period.active { background: var(--red-dim); border-color: var(--red); color: var(--text); }
 
 /* ── LOG ITEMS ── */
 .log-list { gap: 5px; }

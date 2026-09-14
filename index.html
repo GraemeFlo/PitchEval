@@ -2154,6 +2154,10 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 }
 .period-btn:active { transform: scale(0.96); opacity: 0.7; }
 
+/* The Period heading joins its buttons rather than staying the muted grey the
+   other section headings use. */
+.section-label.period-label { color: var(--blue); }
+
 /* Period labels are blue, matching their outline — except Kicks From The Mark,
    which is red on both, since it is the one period that is not part of the
    normal run of play. */
@@ -3137,7 +3141,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
       <button class="btn-secondary" onclick="openNoteModal()">📝 Add Match Event</button>
 
       <!-- Period Controls -->
-      <div class="section-label">Period</div>
+      <div class="section-label period-label">Period</div>
       <div class="period-grid">
         <button class="period-btn" id="pb-1h"  onclick="setPeriod('1h')"  >1st Half</button>
         <button class="period-btn" id="pb-ht"  onclick="setPeriod('ht')"  >H/T</button>

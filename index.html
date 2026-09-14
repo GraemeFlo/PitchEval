@@ -566,7 +566,8 @@ textarea { resize: none; line-height: 1.5; min-height: 60px; }
 .log-icon { font-size: 16px; }
 .log-desc { flex: 1; font-size: 13px; color: var(--text); }
 .log-delete {
-  color: var(--muted2);
+  /* a delete control shouldn't be the faintest thing on the row */
+  color: var(--muted);
   font-size: 16px;
   cursor: pointer;
   padding: 4px;
@@ -1787,7 +1788,9 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 }
 .foul-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
 .foul-mid {
-  font-size: 9px; font-weight: 700; color: var(--muted2);
+  /* --muted2 is the placeholder grey; at 9px it was under 2:1 in dark mode and
+     under 4.5:1 in light. --muted is legible in both. */
+  font-size: 9px; font-weight: 700; color: var(--muted);
   letter-spacing: 1.5px; padding: 0 10px;
 }
 .foul-half-split {
@@ -1797,6 +1800,104 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 .foul-half-cell { display: flex; align-items: baseline; gap: 5px; }
 .foul-half-lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
 .foul-half-val { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 600; color: var(--muted); }
+
+/* ── LIGHT-MODE TEXT CONTRAST ──
+   The accent colours are tuned for a dark background; on a light one the same
+   hues sit at 1.7–4.4:1 against the tinted button fills, below the 4.5:1 that
+   small text needs to stay legible (worse again on a phone in daylight, which
+   is exactly where this app is used). Deepen the hues used as TEXT in light
+   mode — the dim/background variants are left alone, so the colour coding of
+   each event button is unchanged. */
+[data-theme="light"], [data-theme="auto"] {
+  --gold: #8a5a00;
+  --yellow: #7a5200;
+  --blue: #0757b3;
+  --green: #146b2e;
+  --red: #b3161f;
+  --muted2: #6e7781;
+}
+
+/* Yellow Card hardcoded its hue instead of using the token, so it never
+   responded to the theme at all */
+[data-theme="light"] .event-btn.yellow .label,
+[data-theme="light"] .event-btn.yellow .count,
+[data-theme="auto"]  .event-btn.yellow .label,
+[data-theme="auto"]  .event-btn.yellow .count { color: var(--yellow); }
+
+[data-theme="light"] .event-btn.pk .label,
+[data-theme="light"] .event-btn.pk .count,
+[data-theme="auto"]  .event-btn.pk .label,
+[data-theme="auto"]  .event-btn.pk .count { color: #6b21a8; }
+
+/* Dark text on a mid-green field is the one place a light background made
+   things worse — white reads far better on it */
+[data-theme="light"] .clock-btn.primary,
+[data-theme="auto"]  .clock-btn.primary { color: #ffffff; }
+
+/* The deeper gold reads well AS text, but it also fills the active tab and the
+   primary buttons, and the near-black label sitting on those no longer had the
+   contrast to carry. White on the deeper gold does. */
+[data-theme="light"] .tab.active,
+[data-theme="auto"]  .tab.active,
+[data-theme="light"] .btn-primary,
+[data-theme="auto"]  .btn-primary,
+[data-theme="light"] .official-tab.active,
+[data-theme="auto"]  .official-tab.active { color: #ffffff; }
+
+/* Rating-band chips in the Guide carried their colours as inline styles, so
+   they stayed dark-theme hues whatever the theme — 1.8:1 on a light card.
+   Tokenised here so both themes get a readable pair. */
+.guide-badge.band-low   { background: var(--red-dim);   color: var(--red); }
+.guide-badge.band-mid   { background: var(--gold-dim);  color: var(--gold); }
+.guide-badge.band-good  { background: var(--green-dim); color: var(--green); }
+.guide-badge.band-high  { background: var(--blue-dim);  color: var(--blue); }
+.guide-badge.band-elite { background: rgba(168,85,247,0.15); color: #c084fc; }
+[data-theme="light"] .guide-badge.band-elite,
+[data-theme="auto"]  .guide-badge.band-elite { color: #6b21a8; }
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] .guide-badge.band-elite { color: #c084fc; }
+}
+
+/* Sits on the gold-tinted overall card, where --muted lands just under 4.5:1 */
+.overall-sub { color: var(--text); opacity: 0.75; }
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] {
+    --gold: #f5a623;
+    --yellow: #e3b341;
+    --blue: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --muted2: #3a4055;
+  }
+  [data-theme="auto"] .event-btn.yellow .label,
+  [data-theme="auto"] .event-btn.yellow .count { color: #e3b341; }
+  [data-theme="auto"] .event-btn.pk .label,
+  [data-theme="auto"] .event-btn.pk .count { color: #a855f7; }
+  [data-theme="auto"] .clock-btn.primary { color: #08090e; }
+  [data-theme="auto"] .tab.active { color: #0d1117; }
+}
+
+/* ── UNDO TOAST ── */
+.undo-toast {
+  position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%) translateY(8px);
+  z-index: 99999; display: flex; align-items: center; gap: 14px;
+  padding: 12px 14px 12px 18px; border-radius: 12px;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+  font-size: 14px; font-weight: 600;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  max-width: calc(100vw - 32px);
+}
+.undo-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+.undo-toast-msg { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.undo-toast-btn {
+  flex: none; border: 1px solid var(--gold); background: var(--gold-dim);
+  color: var(--gold); font-weight: 700; font-size: 13px;
+  padding: 7px 16px; border-radius: 8px; cursor: pointer;
+}
 
 /* ── PERSISTENT INFRINGEMENT WATCH (3+ fouls by one player) ── */
 .repeat-fouler-bar {
@@ -3264,11 +3365,11 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 
       <div class="section-label">Score Bands</div>
       <div class="card">
-        <div class="guide-row"><div class="guide-badge" style="background:rgba(255,92,92,0.15);color:#ff5c5c;">&lt;7.0</div><div class="guide-desc">Below standard — significant errors, poor match control</div></div>
-        <div class="guide-row"><div class="guide-badge" style="background:rgba(255,165,0,0.15);color:#ffa500;">7.0–7.9</div><div class="guide-desc">Developing to competent — solid, with areas to improve</div></div>
-        <div class="guide-row"><div class="guide-badge" style="background:rgba(52,208,88,0.15);color:#34d058;">8.0–8.4</div><div class="guide-desc">Good to very good — consistent, controlled performance</div></div>
-        <div class="guide-row"><div class="guide-badge" style="background:rgba(91,164,255,0.15);color:#5ba4ff;">8.5–8.7</div><div class="guide-desc">Excellent to superior — elite-level management</div></div>
-        <div class="guide-row" style="border-bottom:none;"><div class="guide-badge" style="background:rgba(168,85,247,0.15);color:#a855f7;">8.8+</div><div class="guide-desc">Exceptional — world-class, benchmark performance</div></div>
+        <div class="guide-row"><div class="guide-badge band-low">&lt;7.0</div><div class="guide-desc">Below standard — significant errors, poor match control</div></div>
+        <div class="guide-row"><div class="guide-badge band-mid">7.0–7.9</div><div class="guide-desc">Developing to competent — solid, with areas to improve</div></div>
+        <div class="guide-row"><div class="guide-badge band-good">8.0–8.4</div><div class="guide-desc">Good to very good — consistent, controlled performance</div></div>
+        <div class="guide-row"><div class="guide-badge band-high">8.5–8.7</div><div class="guide-desc">Excellent to superior — elite-level management</div></div>
+        <div class="guide-row" style="border-bottom:none;"><div class="guide-badge band-elite">8.8+</div><div class="guide-desc">Exceptional — world-class, benchmark performance</div></div>
       </div>
 
       <div class="section-label">Data &amp; Privacy</div>
@@ -4324,12 +4425,12 @@ function renderCMILog() {
 function deleteCMI(id) {
   const removed = (state.cmis || []).find(c => c.id === id);
   if (!removed) return;
+  captureUndo('CMI deleted', removed.attachments || []);
   if (removed.uid) state.tombstones.cmis[removed.uid] = Date.now();
   state.cmis = state.cmis.filter(c => c.id !== id);
   removeLinkedLogLine(removed.logUid); // don't strand its line in the match log
   renderCMILog();
   updateCMIBadge();
-  deleteAttachmentFiles(removed.attachments);
 }
 
 // ══ EVENTS ══
@@ -4799,6 +4900,75 @@ function addLogItem(icon, desc, time, flagged = false, editData = null) {
   return id;
 }
 
+// ══ UNDO ══
+// Live match data can't be re-entered accurately after the fact, and this is a
+// tool used one-handed at the touchline — so a mis-tap on a delete has to be
+// recoverable. Undo rather than a confirmation dialog: a confirm taxes every
+// correct deletion to guard against the occasional wrong one.
+const UNDO_WINDOW_MS = 7000;
+let _undo = null;
+
+function captureUndo(label, deferredAttachments) {
+  commitPendingUndo(); // starting a new action finalises the previous one
+  _undo = {
+    log: JSON.parse(JSON.stringify(state.log || [])),
+    cmis: JSON.parse(JSON.stringify(state.cmis || [])),
+    cres: JSON.parse(JSON.stringify(state.cres || [])),
+    tombstones: JSON.parse(JSON.stringify(state.tombstones)),
+    // Attachment files are removed only once the window closes, so undoing
+    // never leaves an entry pointing at a video that's already been deleted
+    attachments: deferredAttachments || [],
+    timer: setTimeout(commitPendingUndo, UNDO_WINDOW_MS),
+  };
+  showUndoToast(label);
+}
+
+function commitPendingUndo() {
+  if (!_undo) return;
+  clearTimeout(_undo.timer);
+  const atts = _undo.attachments;
+  _undo = null;
+  if (atts && atts.length) deleteAttachmentFiles(atts);
+}
+
+function performUndo() {
+  if (!_undo) return;
+  clearTimeout(_undo.timer);
+  state.log = _undo.log;
+  state.cmis = _undo.cmis;
+  state.cres = _undo.cres;
+  state.tombstones = _undo.tombstones;
+  _undo = null; // deferred attachment files deliberately left on disk
+  renderLog();
+  renderCMILog();
+  renderCRELog();
+  updateCMIBadge();
+  updateCREBadge();
+  recomputeDerivedState();
+  renderQuickStart();
+  hideUndoToast();
+  toast('Restored');
+}
+
+function showUndoToast(label) {
+  let t = document.getElementById('undoToast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'undoToast';
+    t.className = 'undo-toast';
+    document.body.appendChild(t);
+  }
+  t.innerHTML = `<span class="undo-toast-msg">${escHtml(label)}</span><button class="undo-toast-btn" onclick="performUndo()">Undo</button>`;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(hideUndoToast, UNDO_WINDOW_MS);
+}
+
+function hideUndoToast() {
+  const t = document.getElementById('undoToast');
+  if (t) t.classList.remove('show');
+}
+
 function deleteLog(id) {
   const removed = state.log.find(e => e.id === id);
   if (!removed) return;
@@ -4807,17 +4977,19 @@ function deleteLog(id) {
   // thing. Removing only the line used to leave the record stranded — still in
   // the report, with no trace in the log it came from.
   const refKind = removed.edit && (removed.edit.kind === 'cmiref' ? 'cmis' : removed.edit.kind === 'creref' ? 'cres' : null);
-  if (refKind) {
-    const label = refKind === 'cmis' ? 'Critical Match Incident' : 'Critical Referee Error';
-    if (!confirm(`This also deletes the linked ${label} and its attachments.\n\nDelete both?`)) return;
-    removeLinkedRecord(refKind, removed.edit.refUid);
-  }
+  const linked = refKind ? (state[refKind] || []).find(c => c.uid === removed.edit.refUid) : null;
+
+  captureUndo(
+    refKind ? `Event and linked ${refKind === 'cmis' ? 'CMI' : 'CRE'} deleted` : 'Event deleted',
+    [].concat((removed.edit && removed.edit.attachments) || [], (linked && linked.attachments) || [])
+  );
+
+  if (refKind) removeLinkedRecord(refKind, removed.edit.refUid);
 
   state.tombstones.log[removed.uid] = Date.now();
   state.log = state.log.filter(e => e.id !== id);
   renderLog();
   recomputeDerivedState();
-  if (removed.edit) deleteAttachmentFiles(removed.edit.attachments);
 }
 
 // Drop a CMI/CRE record without routing back through deleteCMI/deleteCRE —
@@ -4829,7 +5001,7 @@ function removeLinkedRecord(key, refUid) {
   state.tombstones[key][rec.uid] = Date.now();
   state[key] = state[key].filter(c => c.uid !== refUid);
   if (key === 'cmis') { renderCMILog(); updateCMIBadge(); } else { renderCRELog(); updateCREBadge(); }
-  deleteAttachmentFiles(rec.attachments);
+  // Attachment files are handled by the undo window in the caller
 }
 
 // ...and the mirror image: drop the log line for a record being deleted,
@@ -5546,7 +5718,14 @@ Generate coaching feedback for all ${offData.length} officials.`;
     renderFeedback(parsed.officials);
 
   } catch(err) {
-    errBar.textContent = `Error: ${err.message}`;
+    // Everything else in the app works offline, so this is the one step that
+    // fails at a pitch with no signal. A raw "Load failed" gives the coach no
+    // idea whether their match data survived — say so explicitly.
+    const offline = (typeof navigator !== 'undefined' && navigator.onLine === false) ||
+                    /load failed|failed to fetch|network|connection/i.test(err.message || '');
+    errBar.textContent = offline
+      ? 'No internet connection — the AI report needs signal. Your match, ratings and notes are saved on this device; tap Regenerate once you are back online.'
+      : `Error: ${err.message}`;
     errBar.style.display = 'block';
   } finally {
     btn.disabled = false;
@@ -6272,9 +6451,10 @@ function handleImportBackupChange(ev) {
     const proceed = confirm(`This backup contains ${data.library.length} match(es) and ${scheduleData.length} scheduled match(es).\n\n${toAdd.length} new match(es) and ${schedToAdd.length} new scheduled match(es) will be added. Existing data is never overwritten.\n\nContinue?`);
     if (!proceed) return;
 
-    setLibrary(merged);
     // An explicit import is a deliberate restore — let it overrule any earlier
-    // deletion of the same fixtures
+    // deletion of the same matches or fixtures
+    untombstoneLibraryMatches(toAdd.map(m => m.id));
+    setLibrary(merged);
     untombstoneScheduleEntries(schedToAdd.map(s => s.id));
     setSchedule(mergedSchedule);
 
@@ -6735,6 +6915,43 @@ function confirmFinalize() {
 // never evicted, survives app updates), with localStorage as a fast synchronous
 // cache and the fallback for the web version.
 const LIBRARY_KEY = 'pitcheval-library';
+// Deleting a saved match has to be remembered, not just applied — otherwise the
+// other device still holds it and the next sync puts it straight back. Same
+// reasoning (and same own-key placement, so older builds keep working) as the
+// schedule's deletion record.
+const LIBRARY_TOMB_KEY = 'pitcheval-library-deleted';
+const LIBRARY_TOMB_TTL_MS = 180 * 24 * 60 * 60 * 1000;
+
+function getLibraryTombstones() {
+  let raw = {};
+  try { raw = JSON.parse(localStorage.getItem(LIBRARY_TOMB_KEY) || '{}') || {}; } catch (e) { raw = {}; }
+  const cutoff = Date.now() - LIBRARY_TOMB_TTL_MS;
+  const out = {};
+  Object.keys(raw).forEach(id => { if ((raw[id] || 0) > cutoff) out[id] = raw[id]; });
+  return out;
+}
+
+function setLibraryTombstones(t) {
+  const json = JSON.stringify(t);
+  try { localStorage.setItem(LIBRARY_TOMB_KEY, json); } catch (e) {}
+  const p = _prefsPlugin();
+  if (p) { try { p.set({ key: LIBRARY_TOMB_KEY, value: json }); } catch (e) {} }
+  const kv = _cloudKVPlugin();
+  if (kv) { try { kv.set({ key: LIBRARY_TOMB_KEY, value: json }); } catch (e) {} }
+}
+
+function tombstoneLibraryMatch(id) {
+  const t = getLibraryTombstones();
+  t[String(id)] = Date.now();
+  setLibraryTombstones(t);
+}
+
+function untombstoneLibraryMatches(ids) {
+  const t = getLibraryTombstones();
+  let changed = false;
+  (ids || []).forEach(id => { if (String(id) in t) { delete t[String(id)]; changed = true; } });
+  if (changed) setLibraryTombstones(t);
+}
 function _prefsPlugin() {
   return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences) || null;
 }
@@ -6837,10 +7054,12 @@ function stripAttachmentsForSync(library) {
 // side has the newer savedAt. Crucially: when the cloud side wins for a
 // match, this device's local attachments (which the cloud copy never had)
 // are re-applied on top so a metadata sync never silently drops them.
-function mergeLibraries(local, cloud) {
+function mergeLibraries(local, cloud, deleted) {
+  const dead = deleted || getLibraryTombstones();
   const byId = new Map();
-  (local || []).forEach(m => byId.set(m.id, m));
+  (local || []).forEach(m => { if (!(String(m.id) in dead)) byId.set(m.id, m); });
   (cloud || []).forEach(cm => {
+    if (String(cm.id) in dead) return;     // deleted here — never resurrect it
     const lm = byId.get(cm.id);
     if (!lm) { byId.set(cm.id, cm); return; }
     if ((cm.savedAt || 0) <= (lm.savedAt || 0)) return; // local is same-or-newer, keep it
@@ -6932,11 +7151,22 @@ async function pullAndMergeLibraryFromCloud() {
   const kv = _cloudKVPlugin();
   if (!kv) return;
   try {
+    // Take on the other device's deletions before merging its matches, so
+    // something it deleted doesn't briefly reappear here
+    let cloudTomb = {};
+    try {
+      const tr = await kv.get({ key: LIBRARY_TOMB_KEY });
+      if (tr && tr.value) cloudTomb = JSON.parse(tr.value) || {};
+    } catch (e) {}
+    const localTomb = getLibraryTombstones();
+    const tomb = mergeScheduleTombstones(localTomb, cloudTomb); // same shape: {id: ts}
+    if (JSON.stringify(tomb) !== JSON.stringify(localTomb)) setLibraryTombstones(tomb);
+
     const res = await kv.get({ key: LIBRARY_KEY });
     if (!res || !res.value) return;
     const cloud = JSON.parse(res.value);
     const local = getLibrary();
-    const merged = mergeLibraries(local, cloud);
+    const merged = mergeLibraries(local, cloud, tomb);
     if (JSON.stringify(merged) !== JSON.stringify(local)) {
       setLibrary(merged);
       const panel = document.getElementById('panel-library');
@@ -7335,6 +7565,16 @@ async function endLiveSession() {
 async function initLibraryStorage() {
   const p = _prefsPlugin();
   if (!p) return;
+  // Restore the deletion record too if iOS evicted localStorage, or every
+  // deleted match would return on the next merge
+  try {
+    const tr = await p.get({ key: LIBRARY_TOMB_KEY });
+    if (tr && tr.value) {
+      const native = JSON.parse(tr.value) || {};
+      const merged = mergeScheduleTombstones(getLibraryTombstones(), native);
+      try { localStorage.setItem(LIBRARY_TOMB_KEY, JSON.stringify(merged)); } catch (e) {}
+    }
+  } catch (e) {}
   try {
     let local = [];
     try { local = JSON.parse(localStorage.getItem(LIBRARY_KEY) || '[]'); } catch (e) {}
@@ -7677,8 +7917,16 @@ function renderLibrary() {
 }
 
 function deleteLibraryMatch(id) {
-  setLibrary(getLibrary().filter(m => m.id !== id));
+  const m = getLibrary().find(x => x.id === id);
+  if (!m) return;
+  // The most destructive action in the app — a finalized match with its log,
+  // incidents and ratings — and previously a single unguarded tap
+  const name = `${m.match?.home || 'Home'} vs ${m.match?.away || 'Away'}`;
+  if (!confirm(`Delete "${name}" permanently?\n\nIts event log, incidents and ratings go with it. This cannot be undone.`)) return;
+  tombstoneLibraryMatch(id);
+  setLibrary(getLibrary().filter(x => x.id !== id));
   renderLibrary();
+  toast('Match deleted');
 }
 
 function viewLibraryMatch(id) {
@@ -8736,12 +8984,12 @@ function saveCRE() {
 function deleteCRE(id) {
   const removed = (state.cres || []).find(c => c.id === id);
   if (!removed) return;
+  captureUndo('CRE deleted', removed.attachments || []);
   if (removed.uid) state.tombstones.cres[removed.uid] = Date.now();
   state.cres = state.cres.filter(c => c.id !== id);
   removeLinkedLogLine(removed.logUid); // don't strand its line in the match log
   renderCRELog();
   updateCREBadge();
-  deleteAttachmentFiles(removed.attachments);
 }
 
 function renderCRELog() {

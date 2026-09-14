@@ -3843,6 +3843,10 @@ function confirmReset() {
   state.pso = { home: [], away: [] };
   // A new match is a new session — old tombstones have nothing left to suppress
   state.tombstones = { log: {}, cmis: {}, cres: {} };
+  // ...and the half-time baselines belong to the match that just ended. Left in
+  // place, the next match's Full Time summary subtracts THIS match's numbers and
+  // reports negative goals and fouls.
+  state._periodSnapshots = {};
 
   // Score, event counts and foul tallies all fall out of the now-empty log
   recomputeDerivedState();
@@ -6745,13 +6749,55 @@ function mergeLibraries(local, cloud) {
   return Array.from(byId.values()).sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0));
 }
 
+// The whole library goes into a single 1MB iCloud value, and
+// NSUbiquitousKeyValueStore discards an oversized write WITHOUT reporting an
+// error — so a season's worth of matches would eventually make library sync
+// stop dead, silently. Rather than fail or block, push as many matches as fit,
+// newest first, and say so. Nothing is lost by trimming: the merge is a union,
+// so a match that stops being pushed still lives on the device that holds it.
+const CLOUD_LIBRARY_BUDGET_BYTES = 700 * 1024;
+let _librarySyncNote = '';
+
 async function pushLibraryToCloud() {
   const kv = _cloudKVPlugin();
   if (!kv) return;
   try {
-    const stripped = stripAttachmentsForSync(getLibrary());
-    await kv.set({ key: LIBRARY_KEY, value: JSON.stringify(stripped) });
+    const all = stripAttachmentsForSync(getLibrary());
+
+    // Whatever the other keys (schedule, live match) already occupy is not ours
+    let budget = CLOUD_LIBRARY_BUDGET_BYTES;
+    try {
+      const info = await kv.keys();
+      const sizes = (info && info.sizes) || {};
+      const others = Object.keys(sizes).reduce((n, k) => n + (k === LIBRARY_KEY ? 0 : (sizes[k] || 0)), 0);
+      budget = Math.max(0, CLOUD_LIBRARY_BUDGET_BYTES - others);
+    } catch (e) { /* older build without keys() — fall back to the flat budget */ }
+
+    const byNewest = all.slice().sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+    const fitting = [];
+    let used = 2; // the enclosing "[]"
+    for (const m of byNewest) {
+      const size = JSON.stringify(m).length + 1; // + separating comma
+      if (used + size > budget && fitting.length) break;
+      used += size;
+      fitting.push(m);
+    }
+
+    _librarySyncNote = fitting.length < all.length
+      ? `Syncing the ${fitting.length} most recent of ${all.length} matches — iCloud storage for this app is nearly full. Older matches stay safe on this device.`
+      : '';
+    await kv.set({ key: LIBRARY_KEY, value: JSON.stringify(fitting) });
+    renderCloudSyncStatus();
   } catch (e) {}
+}
+
+function renderCloudSyncStatus() {
+  const el = document.getElementById('cloudSyncStatus');
+  if (!el) return;
+  if (!_cloudKVPlugin()) { el.textContent = ''; return; }
+  el.textContent = _librarySyncNote
+    ? '⚠️ ' + _librarySyncNote
+    : '☁️ Matches, ratings and the live match in progress sync across your devices via iCloud';
 }
 
 async function pullAndMergeLibraryFromCloud() {
@@ -6775,7 +6821,7 @@ function initCloudSync() {
   const kv = _cloudKVPlugin();
   const statusEl = document.getElementById('cloudSyncStatus');
   if (!kv) { if (statusEl) statusEl.textContent = ''; return; }
-  if (statusEl) statusEl.textContent = '☁️ Matches, ratings and the live match in progress sync across your devices via iCloud';
+  renderCloudSyncStatus();
   pullAndMergeLibraryFromCloud();
   pullAndMergeLiveFromCloud();
   // The native side reports WHICH keys changed; only re-pull what actually
@@ -7165,16 +7211,25 @@ async function initLibraryStorage() {
     let local = [];
     try { local = JSON.parse(localStorage.getItem(LIBRARY_KEY) || '[]'); } catch (e) {}
     const res = await p.get({ key: LIBRARY_KEY });
-    const nativeJson = res && res.value;
-    const native = nativeJson ? JSON.parse(nativeJson) : [];
-    if (local.length === 0 && native.length > 0) {
-      // localStorage was empty/evicted → restore from the durable native store
-      localStorage.setItem(LIBRARY_KEY, nativeJson);
+    const nativeJson = (res && res.value) || '';
+    let native = [];
+    try { native = nativeJson ? JSON.parse(nativeJson) : []; } catch (e) {}
+
+    // Merge the two stores match by match, newest savedAt winning. The previous
+    // version chose a whole side by length: any non-empty localStorage was
+    // pushed over the native store, so a native store that was AHEAD — after a
+    // partial eviction or an interrupted write — lost the matches only it still
+    // had. mergeLibraries is a union, so neither side can drop a match now.
+    const merged = mergeLibraries(local, native);
+    const mergedJson = JSON.stringify(merged);
+
+    if (mergedJson !== JSON.stringify(local)) {
+      try { localStorage.setItem(LIBRARY_KEY, mergedJson); } catch (e) {}
       const panel = document.getElementById('panel-library');
       if (panel && panel.classList.contains('active')) renderLibrary();
-    } else if (local.length > 0) {
-      // Keep the native store in sync with the current library
-      try { p.set({ key: LIBRARY_KEY, value: localStorage.getItem(LIBRARY_KEY) }); } catch (e) {}
+    }
+    if (mergedJson !== nativeJson) {
+      try { p.set({ key: LIBRARY_KEY, value: mergedJson }); } catch (e) {}
     }
   } catch (e) {}
 }

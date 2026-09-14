@@ -4366,6 +4366,36 @@ function closeEventModal() { document.getElementById('eventModal').classList.rem
 // tally, per-period foul tally, score). Shared by the edit-reversal path in
 // saveEvent() and by deleteLog() — without this, editing or deleting an
 // event used to leave the header tallies permanently out of sync.
+// Cautions for C1 (unsporting behaviour) and C3 (persistent infringement)
+// arise from a foul, so the foul is recorded automatically. C2 dissent,
+// C4 delaying the restart, C5 distance, and C6/C7 entering/leaving are not
+// fouls and must not inflate the foul count.
+function cautionImpliesFoul(offense) {
+  return /^C[13] - /.test(offense || '');
+}
+
+// Record the foul that earned a caution, so the foul count is correct even if
+// the coach dismisses the follow-up detail form. Returns the new log entry id
+// so the detail form can EDIT this entry rather than create a duplicate.
+function recordFoulForCaution(team, player, period) {
+  state.counts.foul++;
+  const cnt = document.getElementById('cnt-foul');
+  if (cnt) cnt.textContent = state.counts.foul;
+  if (team === 'home' || team === 'away') {
+    state.foulsByTeam[team] = (state.foulsByTeam[team] || 0) + 1;
+    if (!state.foulsByPeriod[period]) state.foulsByPeriod[period] = { home: 0, away: 0 };
+    state.foulsByPeriod[period][team] = (state.foulsByPeriod[period][team] || 0) + 1;
+  }
+  updateFoulTally();
+
+  const editData = { kind: 'event', type: 'foul', team, side: '', foulType: '', foulNature: '',
+    offsideType: '', offense: '', player, scorer: '', pkRes: '', note: '', period, attachments: [] };
+  let desc = EVENT_META.foul.label;
+  if (team) desc += ` — ${team === 'home' ? state.match.home : state.match.away}`;
+  if (player) desc += ` #${player}`;
+  return addLogItem(EVENT_META.foul.icon, desc, getCurrentTime(), false, editData);
+}
+
 function reverseEventEffects(o) {
   if (!o || o.kind !== 'event') return;
   if (state.counts[o.type] > 0) {
@@ -4536,21 +4566,20 @@ function saveEvent() {
     if (seqFromFoul) {
       // The foul was already recorded (reckless-foul chain) → go straight to the CMI menu
       setTimeout(() => openSheet('cmi'), 220);
-    } else {
-      // Direct caution → open the Foul form (carry team/player); saving it opens the CMI menu
-      const carryTeam = team, carryPlayer = player;
+    } else if (cautionImpliesFoul(offense)) {
+      // Record the foul straight away so the count is right even if the detail
+      // form is dismissed, then open that same entry for optional detail
+      // (editing it, so the foul is never counted twice).
+      const foulId = recordFoulForCaution(team, player, eventPeriod);
       setTimeout(() => {
-        logEvent('foul');
+        editLog(foulId);
         if (state.pendingEvent) state.pendingEvent.thenCMI = true;
-        if (carryTeam === 'home' || carryTeam === 'away') {
-          const tb = document.querySelector(`.radio-btn[data-target="ev_team"][data-val="${carryTeam}"]`);
-          if (tb) selectRadio(tb);
-        }
-        if (carryPlayer) {
-          const pf = document.getElementById('ev_player');
-          if (pf) pf.value = carryPlayer;
-        }
+        const t = document.getElementById('eventModalTitle');
+        if (t) t.textContent = '🟠 Foul — add detail (optional)';
       }, 220);
+    } else {
+      // Dissent, delaying the restart, entering/leaving — not a foul → CMI menu
+      setTimeout(() => openSheet('cmi'), 220);
     }
   }
 }
@@ -4591,7 +4620,10 @@ function toggleLogFlag(id) {
 }
 
 function addLogItem(icon, desc, time, flagged = false, editData = null) {
-  const id = Date.now();
+  let id = Date.now();
+  // Guarantee uniqueness — a caution and its auto-recorded foul can be created
+  // in the same millisecond, and duplicate ids would break edit/delete lookups
+  while (state.log.some(e => e.id === id)) id++;
   state.log.push({ id, icon, desc, time, flagged, edit: editData });
   renderLog();
   renderQuickStart();

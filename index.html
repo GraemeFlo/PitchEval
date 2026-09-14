@@ -76,10 +76,10 @@ button {
 
 /* ── LIGHT MODE VARIABLES ── */
 [data-theme="light"] {
-  --bg: #f4f6fa;
-  --surface: #ffffff;
-  --surface2: #eef0f5;
-  --border: #d0d7e3;
+  --bg: #e6e9ee;
+  --surface: #f3f4f7;
+  --surface2: #dde1e8;
+  --border: #c5ccd8;
   --gold: #1a5fb4;
   --gold-dim: rgba(26,95,180,0.12);
   --green: #1a7f37;
@@ -96,10 +96,10 @@ button {
 
 /* ── AUTO MODE — follows system preference ── */
 [data-theme="auto"] {
-  --bg: #f4f6fa;
-  --surface: #ffffff;
-  --surface2: #eef0f5;
-  --border: #d0d7e3;
+  --bg: #e6e9ee;
+  --surface: #f3f4f7;
+  --surface2: #dde1e8;
+  --border: #c5ccd8;
   --gold: #1a5fb4;
   --gold-dim: rgba(26,95,180,0.12);
   --green: #1a7f37;
@@ -1588,10 +1588,10 @@ textarea { resize: none; line-height: 1.5; min-height: 60px; }
   --muted2: #78828f;
 }
 [data-theme="light"] {
-  --bg: #f4f6fa;
-  --surface: #ffffff;
-  --surface2: #eef0f5;
-  --border: #d0d7e3;
+  --bg: #e6e9ee;
+  --surface: #f3f4f7;
+  --surface2: #dde1e8;
+  --border: #c5ccd8;
   --gold: #1a5fb4;
   --gold-dim: rgba(26,95,180,0.12);
   --green: #1a7f37;
@@ -1606,10 +1606,10 @@ textarea { resize: none; line-height: 1.5; min-height: 60px; }
   --muted2: #afb8c1;
 }
 [data-theme="auto"] {
-  --bg: #f4f6fa;
-  --surface: #ffffff;
-  --surface2: #eef0f5;
-  --border: #d0d7e3;
+  --bg: #e6e9ee;
+  --surface: #f3f4f7;
+  --surface2: #dde1e8;
+  --border: #c5ccd8;
   --gold: #1a5fb4;
   --gold-dim: rgba(26,95,180,0.12);
   --green: #1a7f37;
@@ -1950,7 +1950,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
    and became unreadable. Re-theme those specific properties here. */
 [data-theme="light"] .scoreboard,
 [data-theme="auto"]  .scoreboard {
-  background: linear-gradient(160deg, #ffffff 0%, #eef1f7 100%);
+  background: linear-gradient(160deg, #f5f6f9 0%, #e9ecf2 100%);
   border-color: rgba(26,95,180,0.35);
   box-shadow: 0 4px 18px rgba(20,30,60,0.10), inset 0 1px 0 rgba(255,255,255,0.8), 0 0 0 1px rgba(26,95,180,0.10);
 }
@@ -2154,6 +2154,15 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 }
 .period-btn:active { transform: scale(0.96); opacity: 0.7; }
 
+/* The bottom bar is hardcoded white for both themes. With light mode now on a
+   grey surface it would be the only pure white left on screen, so it follows
+   the surface colour there; dark mode keeps the white bar it has always had. */
+[data-theme="light"] .bottom-bar,
+[data-theme="auto"]  .bottom-bar { background: var(--surface); border-top-color: var(--border); }
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] .bottom-bar { background: #ffffff; border-top-color: #e5e7eb; }
+}
+
 /* The Period heading joins its buttons rather than staying the muted grey the
    other section headings use. */
 .section-label.period-label { color: var(--blue); }
@@ -2285,7 +2294,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 /* ── COACH PROFILE SCREEN ── */
 #coachProfileScreen {
   position: fixed; inset: 0; z-index: 9998;
-  background: #08090e;
+  background: #2c3138;
   display: none; flex-direction: column;
   align-items: center; justify-content: center;
   padding: 40px 32px calc(40px + env(safe-area-inset-bottom,0px));
@@ -2304,7 +2313,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 /* ── ONBOARDING ── */
 #onboardingScreen {
   position: fixed; inset: 0; z-index: 9999;
-  background: #08090e;
+  background: #2c3138;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   padding: 40px 32px calc(40px + env(safe-area-inset-bottom, 0px));
@@ -2323,7 +2332,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 /* ── HOW IT WORKS (first-match walkthrough) ── */
 #howItWorksScreen {
   position: fixed; inset: 0; z-index: 9998;
-  background: #08090e;
+  background: #2c3138;
   display: none; flex-direction: column;
   align-items: center; justify-content: center;
   padding: 40px 32px calc(40px + env(safe-area-inset-bottom, 0px));
@@ -2377,7 +2386,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
   color: #7fb2f5; letter-spacing: 0.5px; margin-bottom: 6px;
 }
 .onboard-subtitle {
-  font-size: 15px; font-weight: 600; color: #edf0f7;
+  font-size: 15px; font-weight: 600; color: #eceff4;
   letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 32px;
 }
 .onboard-features {
@@ -2396,8 +2405,8 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 .onboard-feature-icon.blue  { background: rgba(91,164,255,0.12); border: 1px solid rgba(91,164,255,0.2); }
 .onboard-feature-icon.red   { background: rgba(255,92,92,0.12);  border: 1px solid rgba(255,92,92,0.2); }
 .onboard-feature-icon.green { background: rgba(52,208,88,0.12);  border: 1px solid rgba(52,208,88,0.2); }
-.onboard-feature-text strong { display: block; font-size: 14px; font-weight: 700; color: #edf0f7; margin-bottom: 2px; }
-.onboard-feature-text span   { font-size: 12px; color: #7a8499; line-height: 1.4; }
+.onboard-feature-text strong { display: block; font-size: 14px; font-weight: 700; color: #eceff4; margin-bottom: 2px; }
+.onboard-feature-text span   { font-size: 12px; color: #aeb7c4; line-height: 1.4; }
 .onboard-btn {
   width: 100%; max-width: 320px; padding: 16px;
   background: #7fb2f5; border: none; border-radius: 14px;
@@ -2406,7 +2415,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 }
 .onboard-btn:active { opacity: 0.85; transform: scale(0.98); }
 .onboard-footer {
-  margin-top: 16px; font-size: 12px; color: #3a4055;
+  margin-top: 16px; font-size: 12px; color: #aeb7c4;
 }
 
 .bottom-bar {
@@ -6510,7 +6519,7 @@ function showTextFallback(filename, content) {
   box.innerHTML = `<div style="font-weight:700;color:var(--text,#e6edf3);font-size:15px;">${filename}</div>
     <textarea readonly style="flex:1;min-height:300px;width:100%;font-family:monospace;font-size:12px;padding:10px;border-radius:8px;border:1px solid var(--border,#30363d);background:var(--surface2,#0d1117);color:var(--text,#e6edf3);">${content.replace(/</g,'&lt;')}</textarea>
     <div style="display:flex;gap:8px;">
-      <button id="ftCopy" style="flex:1;padding:12px;border-radius:10px;border:none;background:var(--gold,#7fb2f5);color:#08090e;font-weight:700;">Copy All</button>
+      <button id="ftCopy" style="flex:1;padding:12px;border-radius:10px;border:none;background:var(--gold,#7fb2f5);color:var(--on-accent);font-weight:700;">Copy All</button>
       <button id="ftClose" style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--border,#30363d);background:transparent;color:var(--text,#e6edf3);">Close</button>
     </div>`;
   overlay.appendChild(box);
@@ -8099,7 +8108,7 @@ function toast(msg) {
   if (!t) {
     t = document.createElement('div');
     t.id = 'appToast';
-    t.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:99999;background:var(--surface2,#181c26);color:var(--text,#edf0f7);border:1px solid var(--gold,#7fb2f5);padding:12px 18px;border-radius:12px;font-size:14px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,0.4);opacity:0;transition:opacity 0.2s;';
+    t.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:99999;background:var(--surface2,#404751);color:var(--text,#eceff4);border:1px solid var(--gold,#7fb2f5);padding:12px 18px;border-radius:12px;font-size:14px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,0.4);opacity:0;transition:opacity 0.2s;';
     document.body.appendChild(t);
   }
   t.textContent = msg;

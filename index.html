@@ -1798,6 +1798,28 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 .foul-half-lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
 .foul-half-val { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 600; color: var(--muted); }
 
+/* ── LIVE MATCH SYNC (this coach's other device) ── */
+.live-sync-status {
+  margin-top: 8px; text-align: center;
+  font-size: 10px; letter-spacing: 0.3px; color: var(--muted);
+}
+.live-sync-status.warn { color: var(--gold); }
+
+.live-join-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 10px; padding: 11px 14px;
+  border-radius: var(--radius);
+  background: var(--gold-dim);
+  border: 1px solid var(--gold);
+}
+.live-join-text { flex: 1; min-width: 150px; font-size: 12px; color: var(--text); }
+.live-join-btn, .live-join-dismiss {
+  border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 600;
+  cursor: pointer; border: 1px solid transparent;
+}
+.live-join-btn { background: var(--gold); color: #1a1206; }
+.live-join-dismiss { background: transparent; color: var(--muted); border-color: var(--border); }
+
 /* ── LIGHT-MODE SCOREBOARD ──
    The scoreboard styles above hard-code a dark navy gradient, a light-on-dark
    team name, and white-based dividers. Those don't respond to the theme vars,
@@ -2872,6 +2894,9 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
       <!-- Quick Start Checklist (first-time coaches only) -->
       <div class="quick-start-card" id="quickStartCard"></div>
 
+      <!-- A live match running on the coach's other device -->
+      <div class="live-join-bar" id="liveJoinBar" style="display:none"></div>
+
       <!-- Scoreboard -->
       <div class="scoreboard">
         <div class="score-teams">
@@ -2898,6 +2923,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
           <div class="foul-half-cell"><span class="foul-half-lbl">1st Half</span><span class="foul-half-val" id="foulHalf1h">0–0</span></div>
           <div class="foul-half-cell"><span class="foul-half-lbl">2nd Half</span><span class="foul-half-val" id="foulHalf2h">0–0</span></div>
         </div>
+        <div class="live-sync-status" id="liveSyncStatus" style="display:none"></div>
       </div>
 
       <!-- Clock -->
@@ -3498,7 +3524,48 @@ const state = {
   ],
   currentOfficial: 0,
   pendingEvent: null,
+  // Deletions have to be remembered, not just applied. A device that merges in
+  // another device's copy of the match would otherwise resurrect anything
+  // deleted here, because "absent from their copy" is indistinguishable from
+  // "they haven't seen it yet". Keyed by uid → deletion timestamp.
+  tombstones: { log: {}, cmis: {}, cres: {} },
 };
+
+// ══ DEVICE IDENTITY ══
+// Stable per-install id. Used to namespace entry uids so two devices logging
+// the same match can never mint colliding ids, and to give each device its own
+// iCloud key so neither can overwrite the other's entries.
+const DEVICE_ID_KEY = 'pitcheval-device-id';
+
+function getDeviceId() {
+  if (state._deviceId) return state._deviceId;
+  let id = null;
+  try { id = localStorage.getItem(DEVICE_ID_KEY); } catch (e) {}
+  if (!id) {
+    id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    try { localStorage.setItem(DEVICE_ID_KEY, id); } catch (e) {}
+  }
+  state._deviceId = id;
+  return id;
+}
+
+// A human label for the sync status line ("Synced with iPad · 8s ago").
+function getDeviceLabel() {
+  const ua = navigator.userAgent || '';
+  if (/iPad/.test(ua)) return 'iPad';
+  if (/iPhone/.test(ua)) return 'iPhone';
+  if (/Android/.test(ua)) return 'Android';
+  if (/Mac/.test(ua)) return 'Mac';
+  return 'this device';
+}
+
+// Globally unique id for a log/CMI/CRE entry. The numeric `id` stays the local
+// handle (it's interpolated into onclick handlers and parsed with Number()),
+// while `uid` is what survives a merge — so a renumbered entry is still
+// recognised as the same entry.
+function makeUid(localId) {
+  return getDeviceId() + ':' + localId;
+}
 
 const CRITERIA = {
   Referee: ['Match Control','Game Management','Positioning','Interaction','Advantage Play','Restart Management','Teamwork'],
@@ -3608,6 +3675,7 @@ function liveMatchUpdate() {
 
   updateHeader();
   updateOfficialTabs();
+  touchLiveSection('match');
   renderQuickStart();
 }
 
@@ -3656,12 +3724,6 @@ function updateHeader() {
   document.getElementById('headerMatchLabel').textContent = label;
   document.getElementById('homeTeamLabel').textContent = m.home;
   document.getElementById('awayTeamLabel').textContent = m.away;
-}
-
-// ══ SCORE ══
-function adjustScore(side, delta) {
-  state.score[side] = Math.max(0, state.score[side] + delta);
-  document.getElementById('scoreDisplay').textContent = `${state.score.home} – ${state.score.away}`;
 }
 
 // ══ CLOCK ══
@@ -3715,6 +3777,11 @@ function toggleClock() {
     document.getElementById('clockDisplay').classList.add('running');
     syncLiveActivity();
   }
+  // Start/stop is the one thing worth pushing straight away rather than
+  // waiting out the debounce — the other device should pick up the running
+  // clock as soon as iCloud will carry it.
+  state._clockTs = Date.now();
+  pushLiveToCloud();
 }
 
 function resetClock() {
@@ -3728,6 +3795,7 @@ function closeResetConfirm() {
 function confirmReset() {
   closeResetConfirm();
   endLiveActivitySafely();
+  endLiveSession();
   _liveActivityWarned = false; // give the next match a fresh diagnostic chance
 
   // Stop clock
@@ -3752,22 +3820,6 @@ function confirmReset() {
   if (pb1h) pb1h.classList.add('active');
   updatePeriodProgress('1h');
 
-  // Reset score
-  state.score = { home: 0, away: 0 };
-  document.getElementById('scoreDisplay').textContent = '0 – 0';
-
-  // Reset event counts & buttons
-  state.counts = { foul: 0, offside: 0, yellow: 0, red: 0, goal: 0, pk: 0 };
-  Object.keys(state.counts).forEach(k => {
-    const el = document.getElementById('cnt-' + k);
-    if (el) el.textContent = '0';
-  });
-
-  // Reset per-team and per-period foul tally
-  state.foulsByTeam = { home: 0, away: 0 };
-  state.foulsByPeriod = {};
-  updateFoulTally();
-
   // New match → new library entry (don't overwrite the previous saved match)
   state._librarySessionId = null;
   state.finalized = false;
@@ -3785,6 +3837,11 @@ function confirmReset() {
   state.cmis = [];
   state.cres = [];
   state.pso = { home: [], away: [] };
+  // A new match is a new session — old tombstones have nothing left to suppress
+  state.tombstones = { log: {}, cmis: {}, cres: {} };
+
+  // Score, event counts and foul tallies all fall out of the now-empty log
+  recomputeDerivedState();
 
   // Re-render log and CMI/CRE lists
   renderLog();
@@ -3856,6 +3913,8 @@ function setPeriod(p) {
 
   // Log the transition
   addLogItem(PERIOD_META[p].icon, PERIOD_META[p].log, null);
+  state._clockTs = Date.now();
+  pushLiveToCloud();
 
   // Show/hide PSO tracker
   const psoTracker = document.getElementById('psoTracker');
@@ -3890,12 +3949,14 @@ function logPsoKick(side, result) {
   const kickNum = state.pso[side].length;
   const teamName = side === 'home' ? state.match.home : state.match.away;
   addLogItem(icons[result], `PSO Kick ${kickNum} — ${teamName}: ${result.charAt(0).toUpperCase() + result.slice(1)}`, 'PSO');
+  touchLiveSection('pso');
   renderPso();
 }
 
 function undoPsoKick(side) {
   if (state.pso[side].length > 0) {
     state.pso[side].pop();
+    touchLiveSection('pso');
     renderPso();
   }
 }
@@ -3911,6 +3972,46 @@ function renderPso() {
       kicks.map(k => `<div class="pso-kick ${colors[k]}">${icons[k]}</div>`).join('');
     document.getElementById(`pso${side.charAt(0).toUpperCase()+side.slice(1)}Total`).textContent = scored;
   });
+}
+
+// ══ DERIVED MATCH TOTALS ══
+// The match log is the single source of truth. Event counts, the per-team and
+// per-half foul tallies, and the score are all REBUILT from it rather than
+// incremented in place — so adding, editing or deleting an entry can never
+// leave the header out of sync with the log, and two devices merging their
+// logs always arrive at identical totals.
+function recomputeDerivedState() {
+  const counts = { foul: 0, offside: 0, yellow: 0, red: 0, goal: 0, pk: 0 };
+  const foulsByTeam = { home: 0, away: 0 };
+  const foulsByPeriod = {};
+  const score = { home: 0, away: 0 };
+
+  (state.log || []).forEach(e => {
+    const d = e && e.edit;
+    if (!d || d.kind !== 'event') return;
+    const team = (d.team === 'home' || d.team === 'away') ? d.team : null;
+    if (counts[d.type] !== undefined) counts[d.type]++;
+    if (d.type === 'foul' && team) {
+      foulsByTeam[team]++;
+      const per = d.period || '1h';
+      if (!foulsByPeriod[per]) foulsByPeriod[per] = { home: 0, away: 0 };
+      foulsByPeriod[per][team]++;
+    }
+    if (d.type === 'goal' && team) score[team]++;
+  });
+
+  state.counts = counts;
+  state.foulsByTeam = foulsByTeam;
+  state.foulsByPeriod = foulsByPeriod;
+  state.score = score;
+
+  Object.keys(counts).forEach(k => {
+    const el = document.getElementById(`cnt-${k}`);
+    if (el) el.textContent = counts[k];
+  });
+  const sd = document.getElementById('scoreDisplay');
+  if (sd) sd.textContent = `${score.home} – ${score.away}`;
+  updateFoulTally();
 }
 
 function updateFoulTally() {
@@ -4105,8 +4206,16 @@ function saveCMI() {
   if (card)            extras.push(card);
   if (identityOutcome) extras.push(identityOutcome);
 
+  if (!state.cmis) state.cmis = [];
+  // Two CMIs saved in the same millisecond used to share an id, and deleteCMI
+  // filters by id — so deleting one silently deleted both
+  let cmiId = Date.now();
+  while (state.cmis.some(c => c.id === cmiId)) cmiId++;
+
   const cmi = {
-    id: Date.now(),
+    id: cmiId,
+    uid: makeUid(cmiId),
+    _ts: Date.now(),
     type, meta,
     decision, by, desc, impact, advantage,
     extras, flagged,
@@ -4114,7 +4223,6 @@ function saveCMI() {
     time: getCurrentTime(),
   };
 
-  if (!state.cmis) state.cmis = [];
   state.cmis.push(cmi);
 
   // Also add to main match log
@@ -4152,6 +4260,7 @@ function renderCMILog() {
 
 function deleteCMI(id) {
   const removed = (state.cmis || []).find(c => c.id === id);
+  if (removed && removed.uid) state.tombstones.cmis[removed.uid] = Date.now();
   state.cmis = state.cmis.filter(c => c.id !== id);
   renderCMILog();
   updateCMIBadge();
@@ -4390,46 +4499,12 @@ function sendOffImpliesFoul(offense) {
 // the coach dismisses the follow-up detail form. Returns the new log entry id
 // so the detail form can EDIT this entry rather than create a duplicate.
 function recordFoulForCard(team, player, period) {
-  state.counts.foul++;
-  const cnt = document.getElementById('cnt-foul');
-  if (cnt) cnt.textContent = state.counts.foul;
-  if (team === 'home' || team === 'away') {
-    state.foulsByTeam[team] = (state.foulsByTeam[team] || 0) + 1;
-    if (!state.foulsByPeriod[period]) state.foulsByPeriod[period] = { home: 0, away: 0 };
-    state.foulsByPeriod[period][team] = (state.foulsByPeriod[period][team] || 0) + 1;
-  }
-  updateFoulTally();
-
   const editData = { kind: 'event', type: 'foul', team, side: '', foulType: '', foulNature: '',
     offsideType: '', offense: '', player, scorer: '', pkRes: '', note: '', period, attachments: [] };
   let desc = EVENT_META.foul.label;
   if (team) desc += ` — ${team === 'home' ? state.match.home : state.match.away}`;
   if (player) desc += ` #${player}`;
   return addLogItem(EVENT_META.foul.icon, desc, getCurrentTime(), false, editData);
-}
-
-// Undo a structured event entry's counted effects (counts, per-team foul
-// tally, per-period foul tally, score). Shared by the edit-reversal path in
-// saveEvent() and by deleteLog() — without this, editing or deleting an
-// event used to leave the header tallies permanently out of sync.
-function reverseEventEffects(o) {
-  if (!o || o.kind !== 'event') return;
-  if (state.counts[o.type] > 0) {
-    state.counts[o.type]--;
-    const el = document.getElementById(`cnt-${o.type}`);
-    if (el) el.textContent = state.counts[o.type];
-  }
-  if (o.type === 'foul' && (o.team === 'home' || o.team === 'away')) {
-    state.foulsByTeam[o.team] = Math.max(0, (state.foulsByTeam[o.team] || 0) - 1);
-    const per = o.period && state.foulsByPeriod[o.period];
-    if (per) per[o.team] = Math.max(0, (per[o.team] || 0) - 1);
-    updateFoulTally();
-  }
-  if (o.type === 'goal' && (o.team === 'home' || o.team === 'away')) {
-    state.score[o.team] = Math.max(0, (state.score[o.team] || 0) - 1);
-    const sd = document.getElementById('scoreDisplay');
-    if (sd) sd.textContent = `${state.score.home} – ${state.score.away}`;
-  }
 }
 
 function saveEvent() {
@@ -4474,43 +4549,22 @@ function saveEvent() {
   const oldOffense = (oldEntry && oldEntry.edit && oldEntry.edit.offense) || '';
   const editData = { kind: 'event', type, team, side, foulType, foulNature, offsideType, offense, player, scorer, pkRes, note, period: eventPeriod, attachments: _pendingAttachments.slice() };
 
-  // When editing, first reverse the original entry's counted effects
-  if (editingId) {
-    reverseEventEffects(oldEntry && oldEntry.edit);
-  }
-
-  // Apply this event's counted effects
-  state.counts[type]++;
-  document.getElementById(`cnt-${type}`).textContent = state.counts[type];
-
-  // Per-team and per-period foul tally under the scoreboard
-  if (type === 'foul' && (team === 'home' || team === 'away')) {
-    state.foulsByTeam[team] = (state.foulsByTeam[team] || 0) + 1;
-    if (!state.foulsByPeriod[editData.period]) state.foulsByPeriod[editData.period] = { home: 0, away: 0 };
-    state.foulsByPeriod[editData.period][team] = (state.foulsByPeriod[editData.period][team] || 0) + 1;
-  }
-  updateFoulTally();
-
-  // Auto-update scoreboard when a goal is logged
-  if (type === 'goal' && team) {
-    const gside = team === 'home' ? 'home' : 'away';
-    state.score[gside] = (state.score[gside] || 0) + 1;
-    if (!editingId) setTimeout(animateGoal, 50);
-  }
-  document.getElementById('scoreDisplay').textContent = `${state.score.home} – ${state.score.away}`;
-  syncLiveActivity();
-
   // Editing: update the existing entry in place, then fall through to the
   // same auto-chain logic below as a fresh entry — so e.g. flipping a foul
   // to Reckless during an edit still opens the Yellow Card step.
+  // Totals are never touched here: writing the log is enough, because
+  // recomputeDerivedState() rebuilds every count from it.
   if (editingId) {
     const entry = state.log.find(e => e.id === editingId);
-    if (entry) { entry.icon = meta.icon; entry.desc = desc; entry.flagged = flagged; entry.edit = editData; }
+    if (entry) { entry.icon = meta.icon; entry.desc = desc; entry.flagged = flagged; entry.edit = editData; entry._ts = Date.now(); }
     state._editingLogId = null;
     renderLog();
+    recomputeDerivedState();
   } else {
     addLogItem(meta.icon, desc, getCurrentTime(), flagged, editData);
+    if (type === 'goal' && team) setTimeout(animateGoal, 50);
   }
+  syncLiveActivity();
   // The chain logic below opens the follow-up step itself, so clear the sequence
   // flag first — closeEventModal() only acts on it when the form is dismissed.
   if (state.pendingEvent) state.pendingEvent.thenRedCMI = false;
@@ -4663,7 +4717,7 @@ function toggleFlag(btn) {
 
 function toggleLogFlag(id) {
   const entry = state.log.find(e => e.id === id);
-  if (entry) { entry.flagged = !entry.flagged; renderLog(); }
+  if (entry) { entry.flagged = !entry.flagged; entry._ts = Date.now(); renderLog(); }
 }
 
 function addLogItem(icon, desc, time, flagged = false, editData = null) {
@@ -4671,17 +4725,19 @@ function addLogItem(icon, desc, time, flagged = false, editData = null) {
   // Guarantee uniqueness — a caution and its auto-recorded foul can be created
   // in the same millisecond, and duplicate ids would break edit/delete lookups
   while (state.log.some(e => e.id === id)) id++;
-  state.log.push({ id, icon, desc, time, flagged, edit: editData });
+  state.log.push({ id, uid: makeUid(id), _ts: Date.now(), icon, desc, time, flagged, edit: editData });
   renderLog();
+  recomputeDerivedState();
   renderQuickStart();
   return id;
 }
 
 function deleteLog(id) {
   const removed = state.log.find(e => e.id === id);
-  if (removed && removed.edit) reverseEventEffects(removed.edit);
+  if (removed && removed.uid) state.tombstones.log[removed.uid] = Date.now();
   state.log = state.log.filter(e => e.id !== id);
   renderLog();
+  recomputeDerivedState();
   if (removed && removed.edit) deleteAttachmentFiles(removed.edit.attachments);
 }
 
@@ -5023,6 +5079,7 @@ function saveLogEdit() {
   entry.time = document.getElementById('editLogTime').value.trim();
   entry.desc = document.getElementById('editLogDesc').value.trim();
   entry.flagged = document.getElementById('editLog_flag').classList.contains('active');
+  entry._ts = Date.now();
   closeEditLog();
   renderLog();
 }
@@ -5214,18 +5271,21 @@ function setRating(crit, val, idx) {
   } else {
     state.officials[idx].ratings[crit] = val;
   }
+  touchLiveSection('officials');
   buildRatingsPanel(idx);
 }
 
 function cycleToggle(idx, key) {
   const curr = state.officials[idx].toggles[key];
   state.officials[idx].toggles[key] = curr === null ? true : curr === true ? false : null;
+  touchLiveSection('officials');
   buildRatingsPanel(idx);
 }
 
 function saveToggleNote(idx, key, val) {
   if (!state.officials[idx].toggleNotes) state.officials[idx].toggleNotes = {};
   state.officials[idx].toggleNotes[key] = val;
+  touchLiveSection('officials');
 }
 
 // ══ AI FEEDBACK ══
@@ -6499,6 +6559,7 @@ function closePeriodSummary() {
 function confirmFinalize() {
   state.finalized = true;
   endLiveActivitySafely();
+  endLiveSession(); // the match is over — stop advertising it to the other device
   addLogItem('🏁', `Match Finalized — ${state.match.home} ${state.score.home}–${state.score.away} ${state.match.away}`, null, false);
   const btn = document.querySelector('.btn-finalize');
   if (btn) {
@@ -6682,9 +6743,384 @@ function initCloudSync() {
   const kv = _cloudKVPlugin();
   const statusEl = document.getElementById('cloudSyncStatus');
   if (!kv) { if (statusEl) statusEl.textContent = ''; return; }
-  if (statusEl) statusEl.textContent = '☁️ Match info & ratings sync across your devices via iCloud';
+  if (statusEl) statusEl.textContent = '☁️ Matches, ratings and the live match in progress sync across your devices via iCloud';
   pullAndMergeLibraryFromCloud();
-  try { kv.addListener('change', () => { pullAndMergeLibraryFromCloud(); }); } catch (e) {}
+  pullAndMergeLiveFromCloud();
+  // The native side reports WHICH keys changed; only re-pull what actually
+  // moved instead of re-running every merge on every unrelated change.
+  try {
+    kv.addListener('change', (ev) => {
+      const keys = (ev && ev.keys) || [];
+      const touched = k => !keys.length || keys.includes(k);
+      if (touched(LIBRARY_KEY)) pullAndMergeLibraryFromCloud();
+      if (!keys.length || keys.some(k => k.indexOf(LIVE_KEY_PREFIX) === 0)) pullAndMergeLiveFromCloud();
+    });
+  } catch (e) {}
+}
+
+// ══ LIVE MATCH SYNC ══
+// The match in progress is shared across one coach's own devices. Each device
+// writes ONLY its own key — never a shared one — because iCloud Key-Value
+// storage has no conflict resolution: two devices writing one key means the
+// later write silently erases the earlier one's events. Every device then
+// merges all the device keys it can see.
+//
+// Timing note: iCloud KV is eventually consistent and Apple throttles writes,
+// so expect seconds, not milliseconds. That's fine here — neither device is
+// reacting to the other's taps, and the clock is shared as an epoch anchor
+// (baseSeconds + startedAt) so both devices compute identical time regardless
+// of how stale the sync is.
+const LIVE_KEY_PREFIX = 'pitcheval-live-';
+const LIVE_SESSION_STALE_MS = 6 * 60 * 60 * 1000; // a session nobody has touched in 6h is over
+const LIVE_PUSH_DEBOUNCE_MS = 5000;               // respect Apple's write throttling
+const LIVE_BUDGET_BYTES = 800 * 1024;             // keep clear of the 1MB store ceiling
+
+let _livePushTimer = null;
+let _liveSyncBlockedReason = null;
+let _liveLastMergeAt = 0;
+let _livePeerLabel = null;
+
+function _liveKeyForThisDevice() { return LIVE_KEY_PREFIX + getDeviceId(); }
+
+// A session id shared by every device working the same match. Created lazily by
+// whichever device first puts something in the match.
+function getLiveSessionId() {
+  if (!state._liveSessionId) state._liveSessionId = 'S' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  return state._liveSessionId;
+}
+
+function hasLiveMatchContent() {
+  const m = state.match;
+  return (state.log && state.log.length > 0) ||
+         m.home !== 'Home' || m.away !== 'Away' || m.r !== 'Referee';
+}
+
+// Attachments are inline base64 (a single photo is 150-400KB) and would blow
+// the whole store budget, so they stay on the device that captured them —
+// the same rule the match library already follows.
+function _stripAttachments(list) {
+  return (list || []).map(item => {
+    const c = Object.assign({}, item);
+    if (c.edit) { c.edit = Object.assign({}, c.edit); delete c.edit.attachments; }
+    delete c.attachments;
+    return c;
+  });
+}
+
+function buildLivePayload() {
+  return {
+    v: 1,
+    sessionId: getLiveSessionId(),
+    deviceId: getDeviceId(),
+    deviceLabel: getDeviceLabel(),
+    updatedAt: Date.now(),
+    // The interval handle is deliberately absent — it's a live timer id, not data
+    clock: {
+      running: !!state.clock.running,
+      seconds: state.clock.seconds || 0,
+      baseSeconds: state.clock.baseSeconds || 0,
+      startedAt: state.clock.startedAt || 0,
+      period: state.clock.period || '1h',
+      _ts: state._clockTs || 0,
+    },
+    match: Object.assign({}, state.match, { _ts: state._matchTs || 0 }),
+    officials: { list: state.officials, _ts: state._officialsTs || 0 },
+    pso: { home: (state.pso && state.pso.home) || [], away: (state.pso && state.pso.away) || [], _ts: state._psoTs || 0 },
+    log: _stripAttachments(state.log),
+    cmis: _stripAttachments(state.cmis),
+    cres: _stripAttachments(state.cres),
+    tombstones: state.tombstones,
+  };
+}
+
+// Union-merge one remote device's entry list into ours. Entries are matched by
+// uid (stable across devices); the newest _ts wins; anything tombstoned on
+// either side is dropped. A remote entry whose numeric id collides with a local
+// one is renumbered locally — uid is what identifies it, id is just the local
+// handle used by the edit/delete buttons.
+function mergeEntryList(localList, remoteList, tombstones) {
+  const byUid = new Map();
+  const usedIds = new Set();
+
+  (localList || []).forEach(e => {
+    const uid = e.uid || ('local:' + e.id);
+    byUid.set(uid, Object.assign({}, e, { uid }));
+    usedIds.add(e.id);
+  });
+
+  (remoteList || []).forEach(r => {
+    if (!r || !r.uid) return;            // pre-uid entries can't be matched safely
+    const existing = byUid.get(r.uid);
+    if (existing) {
+      if ((r._ts || 0) > (existing._ts || 0)) {
+        // Keep our local id and our local attachments — the remote copy never
+        // carried attachments, and our id may be referenced by open UI
+        byUid.set(r.uid, Object.assign({}, r, {
+          id: existing.id,
+          edit: r.edit ? Object.assign({}, r.edit, { attachments: (existing.edit && existing.edit.attachments) || [] }) : existing.edit,
+          attachments: existing.attachments || [],
+        }));
+      }
+      return;
+    }
+    const merged = Object.assign({}, r);
+    let id = merged.id;
+    while (usedIds.has(id)) id++;        // collision → renumber locally, uid unchanged
+    merged.id = id;
+    usedIds.add(id);
+    if (merged.edit && !merged.edit.attachments) merged.edit.attachments = [];
+    if (!merged.attachments) merged.attachments = [];
+    byUid.set(r.uid, merged);
+  });
+
+  const dead = tombstones || {};
+  return Array.from(byUid.values())
+    .filter(e => !(e.uid in dead))
+    .sort((a, b) => (a._ts || 0) - (b._ts || 0));
+}
+
+function mergeTombstones(local, remote) {
+  const out = Object.assign({}, local || {});
+  Object.keys(remote || {}).forEach(uid => {
+    if (!(uid in out) || remote[uid] > out[uid]) out[uid] = remote[uid];
+  });
+  return out;
+}
+
+// Apply one remote device's payload onto local state. Returns true if anything
+// actually changed, so callers can skip a pointless re-render.
+function applyLivePayload(remote) {
+  if (!remote || remote.sessionId !== getLiveSessionId()) return false;
+  const before = JSON.stringify([state.log, state.cmis, state.cres, state.clock.period, state.match, state.pso]);
+
+  state.tombstones = {
+    log:  mergeTombstones(state.tombstones.log,  (remote.tombstones || {}).log),
+    cmis: mergeTombstones(state.tombstones.cmis, (remote.tombstones || {}).cmis),
+    cres: mergeTombstones(state.tombstones.cres, (remote.tombstones || {}).cres),
+  };
+
+  state.log  = mergeEntryList(state.log,  remote.log,  state.tombstones.log);
+  state.cmis = mergeEntryList(state.cmis, remote.cmis, state.tombstones.cmis);
+  state.cres = mergeEntryList(state.cres, remote.cres, state.tombstones.cres);
+
+  // Single-value sections: last edit wins. Safe here because this is one coach
+  // on two devices, not two people editing the same field at once.
+  const rm = remote.match || {};
+  if ((rm._ts || 0) > (state._matchTs || 0)) {
+    const incoming = Object.assign({}, rm); delete incoming._ts;
+    Object.assign(state.match, incoming);
+    state._matchTs = rm._ts;
+    hydrateMatchForm();
+    updateHeader();
+  }
+  const ro = remote.officials || {};
+  if ((ro._ts || 0) > (state._officialsTs || 0) && ro.list) {
+    state.officials = ro.list;
+    state._officialsTs = ro._ts;
+    buildRatingsPanel(state.currentOfficial || 0);
+    updateOfficialTabs();
+  }
+  const rp = remote.pso || {};
+  if ((rp._ts || 0) > (state._psoTs || 0)) {
+    state.pso = { home: rp.home || [], away: rp.away || [] };
+    state._psoTs = rp._ts;
+    renderPso();
+  }
+  const rc = remote.clock || {};
+  if ((rc._ts || 0) > (state._clockTs || 0)) {
+    adoptRemoteClock(rc);
+    state._clockTs = rc._ts;
+  }
+
+  renderLog();
+  renderCMILog();
+  renderCRELog();
+  recomputeDerivedState();
+  return JSON.stringify([state.log, state.cmis, state.cres, state.clock.period, state.match, state.pso]) !== before;
+}
+
+// Take on another device's clock. Because the running clock is stored as an
+// epoch anchor rather than a ticking number, adopting it makes both devices
+// agree to the second no matter how long the sync took to arrive.
+function adoptRemoteClock(rc) {
+  if (state.clock.interval) { clearInterval(state.clock.interval); state.clock.interval = null; }
+  state.clock.period = rc.period || state.clock.period;
+  state.clock.running = !!rc.running;
+  state.clock.baseSeconds = rc.baseSeconds || 0;
+  state.clock.startedAt = rc.startedAt || 0;
+  state.clock.seconds = rc.seconds || 0;
+
+  const btn = document.getElementById('clockBtn');
+  const disp = document.getElementById('clockDisplay');
+  if (state.clock.running) {
+    recomputeClock();
+    state.clock.interval = setInterval(() => { recomputeClock(); updateClockDisplay(); }, 1000);
+    if (btn) { btn.textContent = 'Stop'; btn.className = 'clock-btn danger'; }
+    if (disp) disp.classList.add('running');
+  } else {
+    if (btn) { btn.textContent = 'Start'; btn.className = 'clock-btn primary'; }
+    if (disp) disp.classList.remove('running');
+  }
+  updateClockDisplay();
+
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  const pb = document.getElementById('pb-' + state.clock.period);
+  if (pb) pb.classList.add('active');
+  const pl = document.getElementById('periodLabel');
+  if (pl) pl.textContent = (PERIOD_META[state.clock.period] || {}).label || '1st Half';
+  updatePeriodProgress(state.clock.period);
+}
+
+// Mark a single-value section as changed so the merge knows whose copy is newer
+function touchLiveSection(section) {
+  state['_' + section + 'Ts'] = Date.now();
+  scheduleLivePush();
+}
+
+function scheduleLivePush() {
+  if (!_cloudKVPlugin() || !hasLiveMatchContent()) return;
+  if (_livePushTimer) return;
+  _livePushTimer = setTimeout(() => { _livePushTimer = null; pushLiveToCloud(); }, LIVE_PUSH_DEBOUNCE_MS);
+}
+
+async function pushLiveToCloud() {
+  const kv = _cloudKVPlugin();
+  if (!kv || !hasLiveMatchContent() || state.finalized) return;
+  try {
+    const json = JSON.stringify(buildLivePayload());
+    const myKey = _liveKeyForThisDevice();
+
+    // NSUbiquitousKeyValueStore fails silently when the 1MB store is full, so
+    // check before writing rather than discovering it never synced.
+    try {
+      const info = await kv.keys();
+      const sizes = (info && info.sizes) || {};
+      const otherBytes = Object.keys(sizes).reduce((n, k) => n + (k === myKey ? 0 : (sizes[k] || 0)), 0);
+      if (otherBytes + json.length > LIVE_BUDGET_BYTES) {
+        _liveSyncBlockedReason = 'iCloud storage for this app is full — the live match is saved on this device but is not syncing.';
+        renderLiveSyncStatus();
+        return;
+      }
+    } catch (e) { /* older build without keys() — fall through and just write */ }
+
+    _liveSyncBlockedReason = null;
+    await kv.set({ key: myKey, value: json });
+    renderLiveSyncStatus();
+  } catch (e) {
+    _liveSyncBlockedReason = 'iCloud write failed — the live match is saved on this device.';
+    renderLiveSyncStatus();
+  }
+}
+
+async function pullAndMergeLiveFromCloud() {
+  const kv = _cloudKVPlugin();
+  if (!kv || state.finalized) return;
+  try {
+    const info = await kv.keys();
+    const allKeys = (info && info.keys) || [];
+    const myKey = _liveKeyForThisDevice();
+    const peerKeys = allKeys.filter(k => k.indexOf(LIVE_KEY_PREFIX) === 0 && k !== myKey);
+    if (!peerKeys.length) return;
+
+    let changed = false;
+    for (const key of peerKeys) {
+      const res = await kv.get({ key });
+      if (!res || !res.value) continue;
+      let remote;
+      try { remote = JSON.parse(res.value); } catch (e) { continue; }
+      if (!remote || !remote.sessionId) continue;
+      if (Date.now() - (remote.updatedAt || 0) > LIVE_SESSION_STALE_MS) continue;
+
+      if (!hasLiveMatchContent() && !state._liveSessionId) {
+        // Nothing of our own in progress → adopt their session outright.
+        // This is the "start on the iPhone, open it on the iPad" case.
+        state._liveSessionId = remote.sessionId;
+        _liveSyncBlockedReason = null;
+      } else if (remote.sessionId !== getLiveSessionId()) {
+        // A different match is live elsewhere. Never merge two matches silently
+        // — offer it and let the coach decide.
+        offerLiveSessionJoin(remote);
+        continue;
+      }
+
+      _livePeerLabel = remote.deviceLabel || 'another device';
+      if (applyLivePayload(remote)) changed = true;
+      _liveLastMergeAt = Date.now();
+    }
+    if (changed) { renderQuickStart(); syncLiveActivity(); }
+    renderLiveSyncStatus();
+  } catch (e) { /* older build without keys(), or iCloud unavailable */ }
+}
+
+// Another device is running a DIFFERENT match. Surface it rather than merging.
+function offerLiveSessionJoin(remote) {
+  if (state._liveJoinOfferId === remote.sessionId) return; // already asked
+  state._liveJoinOfferId = remote.sessionId;
+  state._liveJoinPayload = remote;
+  const bar = document.getElementById('liveJoinBar');
+  if (!bar) return;
+  const label = remote.deviceLabel || 'another device';
+  const teams = remote.match ? `${remote.match.home || 'Home'} vs ${remote.match.away || 'Away'}` : 'a match';
+  bar.innerHTML = `<span class="live-join-text">🔗 <strong>${teams}</strong> is live on your ${label}.</span>
+    <button class="live-join-btn" onclick="acceptLiveSessionJoin()">Join</button>
+    <button class="live-join-dismiss" onclick="dismissLiveSessionJoin()">Not now</button>`;
+  bar.style.display = 'flex';
+}
+
+function dismissLiveSessionJoin() {
+  const bar = document.getElementById('liveJoinBar');
+  if (bar) bar.style.display = 'none';
+  state._liveJoinPayload = null;
+}
+
+function acceptLiveSessionJoin() {
+  const remote = state._liveJoinPayload;
+  dismissLiveSessionJoin();
+  if (!remote) return;
+  // Don't discard whatever is in progress here — park it in the Library first
+  if (hasLiveMatchContent()) { try { saveCurrentMatchToLibrary(true); } catch (e) {} }
+
+  state.log = []; state.cmis = []; state.cres = [];
+  state.tombstones = { log: {}, cmis: {}, cres: {} };
+  state._matchTs = 0; state._officialsTs = 0; state._psoTs = 0; state._clockTs = 0;
+  state._librarySessionId = null;
+  state._liveSessionId = remote.sessionId;
+  applyLivePayload(remote);
+  _liveLastMergeAt = Date.now();
+  _livePeerLabel = remote.deviceLabel || 'another device';
+  renderLiveSyncStatus();
+  toast('Joined the live match from your ' + _livePeerLabel);
+}
+
+function renderLiveSyncStatus() {
+  const el = document.getElementById('liveSyncStatus');
+  if (!el) return;
+  if (!_cloudKVPlugin()) { el.style.display = 'none'; return; }
+  if (_liveSyncBlockedReason) {
+    el.textContent = '⚠️ ' + _liveSyncBlockedReason;
+    el.className = 'live-sync-status warn';
+    el.style.display = 'block';
+    return;
+  }
+  if (!_liveLastMergeAt) { el.style.display = 'none'; return; }
+  const secs = Math.max(0, Math.round((Date.now() - _liveLastMergeAt) / 1000));
+  const ago = secs < 60 ? secs + 's ago' : Math.round(secs / 60) + 'm ago';
+  el.textContent = `🔗 Synced with your ${_livePeerLabel || 'other device'} · ${ago}`;
+  el.className = 'live-sync-status';
+  el.style.display = 'block';
+}
+
+// Stop advertising a match that's over, so the other device doesn't offer to
+// join a dead session and the store budget is freed.
+async function endLiveSession() {
+  if (_livePushTimer) { clearTimeout(_livePushTimer); _livePushTimer = null; }
+  state._liveSessionId = null;
+  _liveLastMergeAt = 0;
+  _livePeerLabel = null;
+  renderLiveSyncStatus();
+  const kv = _cloudKVPlugin();
+  if (!kv) return;
+  try { await kv.remove({ key: _liveKeyForThisDevice() }); } catch (e) {}
 }
 
 // On launch: reconcile the native store with localStorage. If localStorage was
@@ -7531,6 +7967,7 @@ function autosaveCurrentMatch() {
     officials: clone(state.officials || []),
     finalized: !!state.finalized,
     librarySessionId: state._librarySessionId || null,
+    tombstones: clone(state.tombstones),
   };
   try { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(snapshot)); } catch (e) {}
 }
@@ -7590,9 +8027,6 @@ function restoreAutosaveIfPresent() {
   state.clock.period = (snap.clock && snap.clock.period) || '1h';
   state.clock.running = false; // always restore stopped — the coach resumes manually
   state.clock.interval = null;
-  state.counts = snap.counts || state.counts;
-  state.foulsByTeam = snap.foulsByTeam || state.foulsByTeam;
-  state.foulsByPeriod = snap.foulsByPeriod || state.foulsByPeriod || {};
   state.log = snap.log || [];
   state.cmis = snap.cmis || [];
   state.cres = snap.cres || [];
@@ -7600,21 +8034,20 @@ function restoreAutosaveIfPresent() {
   if (snap.officials) state.officials = snap.officials;
   state.finalized = !!snap.finalized;
   state._librarySessionId = snap.librarySessionId || null;
+  state.tombstones = Object.assign({ log: {}, cmis: {}, cres: {} }, snap.tombstones || {});
 
   hydrateMatchForm();
 
-  document.getElementById('scoreDisplay').textContent = `${state.score.home} – ${state.score.away}`;
-  updateFoulTally();
+  // Rebuild every total from the restored log rather than trusting the numbers
+  // the snapshot happens to carry — an older or half-written blob would
+  // otherwise desync the header permanently.
+  recomputeDerivedState();
   updateClockDisplay();
   document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
   const pb = document.getElementById('pb-' + state.clock.period);
   if (pb) pb.classList.add('active');
   document.getElementById('periodLabel').textContent = (PERIOD_META[state.clock.period] || {}).label || '1st Half';
   updatePeriodProgress(state.clock.period);
-  Object.keys(state.counts).forEach(k => {
-    const el = document.getElementById('cnt-' + k);
-    if (el) el.textContent = state.counts[k] || 0;
-  });
   renderLog();
   renderCMILog();
   renderCRELog();
@@ -7653,6 +8086,9 @@ function getQuickStartSteps() {
 
 function renderQuickStart() {
   autosaveCurrentMatch();
+  // Same heartbeat the local autosave rides — debounced, so a burst of edits
+  // becomes one iCloud write
+  scheduleLivePush();
   const card = document.getElementById('quickStartCard');
   if (!card) return;
   try {
@@ -7980,14 +8416,20 @@ function saveCRE() {
   if (restartType)   extras.push(restartType);
   if (advantageType) extras.push(advantageType);
 
+  if (!state.cres) state.cres = [];
+  // Same same-millisecond collision as CMIs — deleteCRE filters by id
+  let creId = Date.now();
+  while (state.cres.some(c => c.id === creId)) creId++;
+
   const cre = {
-    id: Date.now(),
+    id: creId,
+    uid: makeUid(creId),
+    _ts: Date.now(),
     type, meta, official, correct, desc, impact, extras, flagged,
     attachments: _pendingAttachments.slice(),
     time: getCurrentTime(),
   };
 
-  if (!state.cres) state.cres = [];
   state.cres.push(cre);
 
   const logDesc = `ERROR: ${meta.label}${official ? ' — ' + official : ''}${extras[0] ? ' [' + extras[0] + ']' : ''}${desc ? ': ' + desc.substring(0,60) + (desc.length > 60 ? '…':'') : ''}`;
@@ -7999,6 +8441,7 @@ function saveCRE() {
 
 function deleteCRE(id) {
   const removed = (state.cres || []).find(c => c.id === id);
+  if (removed && removed.uid) state.tombstones.cres[removed.uid] = Date.now();
   state.cres = state.cres.filter(c => c.id !== id);
   renderCRELog();
   updateCREBadge();

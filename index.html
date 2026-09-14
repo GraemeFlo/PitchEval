@@ -1835,18 +1835,6 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
   --muted2: #6e7781;
 }
 
-/* Yellow Card hardcoded its hue instead of using the token, so it never
-   responded to the theme at all */
-[data-theme="light"] .event-btn.yellow .label,
-[data-theme="light"] .event-btn.yellow .count,
-[data-theme="auto"]  .event-btn.yellow .label,
-[data-theme="auto"]  .event-btn.yellow .count { color: var(--yellow); }
-
-[data-theme="light"] .event-btn.pk .label,
-[data-theme="light"] .event-btn.pk .count,
-[data-theme="auto"]  .event-btn.pk .label,
-[data-theme="auto"]  .event-btn.pk .count { color: #6b21a8; }
-
 /* Dark text on a mid-green field is the one place a light background made
    things worse — white reads far better on it */
 [data-theme="light"] .clock-btn.primary,
@@ -1891,10 +1879,6 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
     --red: #f85149;
     --muted2: #78828f;
   }
-  [data-theme="auto"] .event-btn.yellow .label,
-  [data-theme="auto"] .event-btn.yellow .count { color: #e3b341; }
-  [data-theme="auto"] .event-btn.pk .label,
-  [data-theme="auto"] .event-btn.pk .count { color: #d4b0ff; }
   [data-theme="auto"] .clock-btn.primary { color: #08090e; }
 }
 
@@ -2119,38 +2103,33 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 .event-btn .count { font-size: 16px; font-weight: 700; margin-left: auto; }
 
 .event-btn.foul   { background: rgba(91,164,255,0.12); border: 1px solid rgba(91,164,255,0.25); }
-.event-btn.foul .label, .event-btn.foul .count { color: var(--blue); }
+/* Event labels and counts all use the body colour. The colour coding lives in
+   the icon and the button's tint instead — six tinted text colours in one grid
+   read as noise, and the numbers are easier to scan when they match. */
+.event-btn.foul .label, .event-btn.foul .count { color: var(--text); }
 .event-btn.foul:active { background: rgba(91,164,255,0.24); transform: scale(0.95); }
 
 /* Offside kept its own amber rather than following the accent: the accent is
    now blue, and Foul is blue, so sharing it would have made the two most-used
    buttons identical. The orange flag icon already reads as amber. */
 .event-btn.offside { background: rgba(240,145,63,0.1); border: 1px solid rgba(240,145,63,0.24); }
-.event-btn.offside .label, .event-btn.offside .count { color: #f5a862; }
+.event-btn.offside .label, .event-btn.offside .count { color: var(--text); }
 .event-btn.offside:active { background: rgba(240,145,63,0.22); transform: scale(0.95); }
-[data-theme="light"] .event-btn.offside .label,
-[data-theme="light"] .event-btn.offside .count,
-[data-theme="auto"]  .event-btn.offside .label,
-[data-theme="auto"]  .event-btn.offside .count { color: #9a4f00; }
-@media (prefers-color-scheme: dark) {
-  [data-theme="auto"] .event-btn.offside .label,
-  [data-theme="auto"] .event-btn.offside .count { color: #f5a862; }
-}
 
 .event-btn.yellow { background: rgba(227,179,65,0.12); border: 1px solid rgba(227,179,65,0.28); }
-.event-btn.yellow .label, .event-btn.yellow .count { color: #e3b341; }
+.event-btn.yellow .label, .event-btn.yellow .count { color: var(--text); }
 .event-btn.yellow:active { background: rgba(227,179,65,0.24); transform: scale(0.95); }
 
 .event-btn.red { background: rgba(255,92,92,0.11); border: 1px solid rgba(255,92,92,0.28); }
-.event-btn.red .label, .event-btn.red .count { color: var(--red); }
+.event-btn.red .label, .event-btn.red .count { color: var(--text); }
 .event-btn.red:active { background: rgba(255,92,92,0.24); transform: scale(0.95); }
 
 .event-btn.goal { background: rgba(52,208,88,0.1); border: 1px solid rgba(52,208,88,0.24); }
-.event-btn.goal .label, .event-btn.goal .count { color: var(--green); }
+.event-btn.goal .label, .event-btn.goal .count { color: var(--text); }
 .event-btn.goal:active { background: rgba(52,208,88,0.22); transform: scale(0.95); }
 
 .event-btn.pk { background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.25); }
-.event-btn.pk .label, .event-btn.pk .count { color: #d4b0ff; }
+.event-btn.pk .label, .event-btn.pk .count { color: var(--text); }
 .event-btn.pk:active { background: rgba(168,85,247,0.22); transform: scale(0.95); }
 
 /* ── PERIOD BUTTONS ── */

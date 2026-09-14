@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PitchEval">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#0d1117">
+<meta name="theme-color" content="#161d2b">
 <meta name="description" content="Soccer referee evaluation tool for US Soccer">
 <meta name="application-name" content="PitchEval">
 
@@ -34,12 +34,12 @@ button {
 }
 
 :root {
-  --bg: #0d1117;
-  --surface: #161b22;
-  --surface2: #1f2937;
-  --border: #30363d;
-  --gold: #f0a500;
-  --gold-dim: rgba(240,165,0,0.15);
+  --bg: #161d2b;
+  --surface: #1e2739;
+  --surface2: #283347;
+  --border: #38455c;
+  --gold: #5b9bf0;
+  --gold-dim: rgba(91,155,240,0.15);
   --green: #3fb950;
   --green-dim: rgba(63,185,80,0.15);
   --red: #f85149;
@@ -47,21 +47,21 @@ button {
   --blue: #58a6ff;
   --blue-dim: rgba(88,166,255,0.12);
   --yellow: #e3b341;
-  --text: #e6edf3;
-  --muted: #8b949e;
-  --muted2: #484f58;
+  --text: #e8eef8;
+  --muted: #96a3ba;
+  --muted2: #56637c;
   --radius: 12px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* ── DARK MODE (explicit attribute) ── */
 [data-theme="dark"] {
-  --bg: #0d1117;
-  --surface: #161b22;
-  --surface2: #1f2937;
-  --border: #30363d;
-  --gold: #f0a500;
-  --gold-dim: rgba(240,165,0,0.15);
+  --bg: #161d2b;
+  --surface: #1e2739;
+  --surface2: #283347;
+  --border: #38455c;
+  --gold: #5b9bf0;
+  --gold-dim: rgba(91,155,240,0.15);
   --green: #3fb950;
   --green-dim: rgba(63,185,80,0.15);
   --red: #f85149;
@@ -69,9 +69,9 @@ button {
   --blue: #58a6ff;
   --blue-dim: rgba(88,166,255,0.12);
   --yellow: #e3b341;
-  --text: #e6edf3;
-  --muted: #8b949e;
-  --muted2: #484f58;
+  --text: #e8eef8;
+  --muted: #96a3ba;
+  --muted2: #56637c;
 }
 
 /* ── LIGHT MODE VARIABLES ── */
@@ -80,8 +80,8 @@ button {
   --surface: #ffffff;
   --surface2: #eef0f5;
   --border: #d0d7e3;
-  --gold: #c87f00;
-  --gold-dim: rgba(200,127,0,0.12);
+  --gold: #1a5fb4;
+  --gold-dim: rgba(26,95,180,0.12);
   --green: #1a7f37;
   --green-dim: rgba(26,127,55,0.12);
   --red: #cf222e;
@@ -100,8 +100,8 @@ button {
   --surface: #ffffff;
   --surface2: #eef0f5;
   --border: #d0d7e3;
-  --gold: #c87f00;
-  --gold-dim: rgba(200,127,0,0.12);
+  --gold: #1a5fb4;
+  --gold-dim: rgba(26,95,180,0.12);
   --green: #1a7f37;
   --green-dim: rgba(26,127,55,0.12);
   --red: #cf222e;
@@ -115,12 +115,12 @@ button {
 }
 @media (prefers-color-scheme: dark) {
   [data-theme="auto"] {
-    --bg: #0d1117;
-    --surface: #161b22;
-    --surface2: #1f2937;
-    --border: #30363d;
-    --gold: #f0a500;
-    --gold-dim: rgba(240,165,0,0.15);
+    --bg: #161d2b;
+    --surface: #1e2739;
+    --surface2: #283347;
+    --border: #38455c;
+    --gold: #5b9bf0;
+    --gold-dim: rgba(91,155,240,0.15);
     --green: #3fb950;
     --green-dim: rgba(63,185,80,0.15);
     --red: #f85149;
@@ -128,9 +128,9 @@ button {
     --blue: #58a6ff;
     --blue-dim: rgba(88,166,255,0.12);
     --yellow: #e3b341;
-    --text: #e6edf3;
-    --muted: #8b949e;
-    --muted2: #484f58;
+    --text: #e8eef8;
+    --muted: #96a3ba;
+    --muted2: #56637c;
   }
 }
 
@@ -256,7 +256,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   transition: all 0.15s;
   user-select: none;
 }
-.tab.active { background: var(--gold); color: #0d1117; }
+.tab.active { background: var(--gold); color: var(--on-accent); }
 
 /* ── CONTENT ── */
 .content {
@@ -469,7 +469,7 @@ textarea { resize: none; line-height: 1.5; min-height: 60px; }
   transition: all 0.1s;
   -webkit-user-select: none;
 }
-.score-btn:active { background: var(--gold); color: #0d1117; transform: scale(0.95); }
+.score-btn:active { background: var(--gold); color: var(--on-accent); transform: scale(0.95); }
 
 /* ── CLOCK ── */
 .clock-bar {
@@ -541,8 +541,8 @@ textarea { resize: none; line-height: 1.5; min-height: 60px; }
 .event-btn.red:active { background: var(--red-dim); }
 .event-btn.goal { border-color: rgba(63,185,80,0.4); }
 .event-btn.goal:active { background: var(--green-dim); }
-.event-btn.offside { border-color: rgba(240,165,0,0.3); }
-.event-btn.offside:active { background: var(--gold-dim); }
+.event-btn.offside { border-color: rgba(240,145,63,0.3); }
+.event-btn.offside:active { background: rgba(240,145,63,0.14); }
 .event-btn.pk { border-color: rgba(168,85,247,0.3); }
 .event-btn.pk:active { background: rgba(168,85,247,0.15); }
 
@@ -597,7 +597,7 @@ textarea { resize: none; line-height: 1.5; min-height: 60px; }
   white-space: nowrap;
   transition: all 0.12s;
 }
-.official-tab.active { background: var(--gold); color: #0d1117; border-color: var(--gold); }
+.official-tab.active { background: var(--gold); color: var(--on-accent); border-color: var(--gold); }
 
 .rating-item {
   display: flex;
@@ -612,8 +612,8 @@ textarea { resize: none; line-height: 1.5; min-height: 60px; }
 .rating-select { flex-shrink: 0; width: 130px; font-size: 13px; padding: 6px 10px; }
 .overall-score {
   margin: 10px 0 4px; padding: 14px 18px;
-  background: linear-gradient(160deg, rgba(245,166,35,0.14), rgba(245,166,35,0.05));
-  border: 1px solid rgba(245,166,35,0.35);
+  background: linear-gradient(160deg, rgba(91,155,240,0.14), rgba(91,155,240,0.05));
+  border: 1px solid rgba(91,155,240,0.35);
   border-radius: 14px;
 }
 .overall-top { display: flex; align-items: center; justify-content: space-between; }
@@ -758,8 +758,8 @@ textarea { resize: none; line-height: 1.5; min-height: 60px; }
 .ai-narrative[contenteditable="true"] { cursor: text; }
 .ai-narrative[contenteditable="true"]:hover { background: rgba(255,255,255,0.02); }
 .ai-narrative[contenteditable="true"]:focus {
-  background: rgba(245,166,35,0.05);
-  box-shadow: 0 0 0 2px var(--gold-dim), inset 0 0 0 1px rgba(245,166,35,0.3);
+  background: rgba(91,155,240,0.05);
+  box-shadow: 0 0 0 2px var(--gold-dim), inset 0 0 0 1px rgba(91,155,240,0.3);
   padding: 12px 10px 12px;
   margin-top: 4px;
 }
@@ -803,7 +803,7 @@ textarea { resize: none; line-height: 1.5; min-height: 60px; }
 .btn-primary {
   width: 100%;
   background: var(--gold);
-  color: #0d1117;
+  color: var(--on-accent);
   border: none;
   border-radius: var(--radius);
   padding: 16px;
@@ -1240,7 +1240,7 @@ textarea { resize: none; line-height: 1.5; min-height: 60px; }
 .period-btn.active {
   background: var(--gold);
   border-color: var(--gold);
-  color: #0d1117;
+  color: var(--on-accent);
 }
 .period-btn.et { border-color: rgba(88,166,255,0.4); color: var(--blue); }
 .period-btn.et.active { background: var(--blue); border-color: var(--blue); color: white; }
@@ -1509,7 +1509,7 @@ textarea { resize: none; line-height: 1.5; min-height: 60px; }
   -webkit-user-select: none;
 }
 .btn-export:active { background: var(--surface2); transform: scale(0.97); }
-.btn-export.pdf { border-color: rgba(240,165,0,0.4); color: var(--gold); }
+.btn-export.pdf { border-color: rgba(91,155,240,0.4); color: var(--gold); }
 .btn-export.pdf:active { background: var(--gold-dim); }
 .btn-export .exp-icon { font-size: 22px; }
 .btn-export .exp-label { font-size: 11px; letter-spacing: 0.5px; }
@@ -1530,52 +1530,70 @@ textarea { resize: none; line-height: 1.5; min-height: 60px; }
    MODERN OVERRIDES
 ═══════════════════════════════════════════ */
 
-/* Richer dark palette */
+/* Soft slate palette — blue-greys rather than black, with a blue accent.
+   NOTE: `--gold` is the brand accent token. It was amber historically and the
+   name stuck because ~70 rules reference it; the value is now blue. Treat it
+   as "accent", and prefer --accent (aliased below) in new rules. */
 :root {
-  --bg: #08090e;
-  --surface: #0f1117;
-  --surface2: #181c26;
-  --border: #252a36;
-  --gold: #f5a623;
-  --gold-dim: rgba(245,166,35,0.14);
+  --bg: #161d2b;
+  --surface: #1e2739;
+  --surface2: #283347;
+  --border: #38455c;
+  --gold: #5b9bf0;
+  --gold-dim: rgba(91,155,240,0.14);
   --green: #34d058;
   --green-dim: rgba(52,208,88,0.13);
   --red: #ff5c5c;
   --red-dim: rgba(255,92,92,0.13);
   --blue: #5ba4ff;
   --blue-dim: rgba(91,164,255,0.12);
-  --text: #edf0f7;
-  --muted: #7a8499;
-  --muted2: #3a4055;
+  --text: #e8eef8;
+  --muted: #96a3ba;
+  --muted2: #56637c;
   --radius: 14px;
   --radius-sm: 8px;
   --shadow: 0 4px 24px rgba(0,0,0,0.45);
   --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
 }
+/* Honest aliases for the accent — they follow --gold in every theme, so new
+   rules can use these without the historical name.
+   --on-accent is the text colour for anything FILLED with the accent. The
+   accent is a light blue on dark themes and a deep navy on light ones, so the
+   text on it has to invert with the theme — white on the light blue is only
+   2.8:1. */
+:root, [data-theme] {
+  --accent: var(--gold);
+  --accent-dim: var(--gold-dim);
+  --on-accent: #131a27;
+}
+[data-theme="light"], [data-theme="auto"] { --on-accent: #ffffff; }
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] { --on-accent: #131a27; }
+}
 [data-theme="dark"] {
-  --bg: #08090e;
-  --surface: #0f1117;
-  --surface2: #181c26;
-  --border: #252a36;
-  --gold: #f5a623;
-  --gold-dim: rgba(245,166,35,0.14);
+  --bg: #161d2b;
+  --surface: #1e2739;
+  --surface2: #283347;
+  --border: #38455c;
+  --gold: #5b9bf0;
+  --gold-dim: rgba(91,155,240,0.14);
   --green: #34d058;
   --green-dim: rgba(52,208,88,0.13);
   --red: #ff5c5c;
   --red-dim: rgba(255,92,92,0.13);
   --blue: #5ba4ff;
   --blue-dim: rgba(91,164,255,0.12);
-  --text: #edf0f7;
-  --muted: #7a8499;
-  --muted2: #3a4055;
+  --text: #e8eef8;
+  --muted: #96a3ba;
+  --muted2: #56637c;
 }
 [data-theme="light"] {
   --bg: #f4f6fa;
   --surface: #ffffff;
   --surface2: #eef0f5;
   --border: #d0d7e3;
-  --gold: #c87f00;
-  --gold-dim: rgba(200,127,0,0.12);
+  --gold: #1a5fb4;
+  --gold-dim: rgba(26,95,180,0.12);
   --green: #1a7f37;
   --green-dim: rgba(26,127,55,0.12);
   --red: #cf222e;
@@ -1592,8 +1610,8 @@ textarea { resize: none; line-height: 1.5; min-height: 60px; }
   --surface: #ffffff;
   --surface2: #eef0f5;
   --border: #d0d7e3;
-  --gold: #c87f00;
-  --gold-dim: rgba(200,127,0,0.12);
+  --gold: #1a5fb4;
+  --gold-dim: rgba(26,95,180,0.12);
   --green: #1a7f37;
   --green-dim: rgba(26,127,55,0.12);
   --red: #cf222e;
@@ -1607,21 +1625,21 @@ textarea { resize: none; line-height: 1.5; min-height: 60px; }
 }
 @media (prefers-color-scheme: dark) {
   [data-theme="auto"] {
-    --bg: #08090e;
-    --surface: #0f1117;
-    --surface2: #181c26;
-    --border: #252a36;
-    --gold: #f5a623;
-    --gold-dim: rgba(245,166,35,0.14);
+    --bg: #161d2b;
+    --surface: #1e2739;
+    --surface2: #283347;
+    --border: #38455c;
+    --gold: #5b9bf0;
+    --gold-dim: rgba(91,155,240,0.14);
     --green: #34d058;
     --green-dim: rgba(52,208,88,0.13);
     --red: #ff5c5c;
     --red-dim: rgba(255,92,92,0.13);
     --blue: #5ba4ff;
     --blue-dim: rgba(91,164,255,0.12);
-    --text: #edf0f7;
-    --muted: #7a8499;
-    --muted2: #3a4055;
+    --text: #e8eef8;
+    --muted: #96a3ba;
+    --muted2: #56637c;
   }
 }
 
@@ -1671,18 +1689,18 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 
 /* ── HEADER ── */
 .app-header {
-  background: linear-gradient(180deg, #0a0c14 0%, #0d1117 100%);
+  background: linear-gradient(180deg, #1b2434 0%, #161d2b 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 2px solid var(--gold);
-  box-shadow: 0 2px 20px rgba(245,166,35,0.12);
+  box-shadow: 0 2px 20px rgba(91,155,240,0.12);
   padding: 10px 16px 10px;
   padding-top: calc(10px + env(safe-area-inset-top, 0px));
 }
 .app-title {
   font-size: 22px;
   letter-spacing: -0.3px;
-  background: linear-gradient(90deg, #f5a623, #ffd166);
+  background: linear-gradient(90deg, #5b9bf0, #8fc0ff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -1706,8 +1724,8 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 }
 .tab.active {
   background: var(--gold);
-  color: #08090e;
-  box-shadow: 0 2px 8px rgba(245,166,35,0.35);
+  color: var(--on-accent);
+  box-shadow: 0 2px 8px rgba(91,155,240,0.35);
 }
 
 /* ── MATCH INFO PILL ── */
@@ -1725,11 +1743,11 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 
 /* ── SCOREBOARD ── */
 .scoreboard {
-  background: linear-gradient(160deg, #0e1525 0%, #080e1a 100%);
-  border: 1px solid rgba(245,166,35,0.25);
+  background: linear-gradient(160deg, #222d42 0%, #1a2331 100%);
+  border: 1px solid rgba(91,155,240,0.25);
   border-radius: 18px;
   padding: 14px 14px 10px;
-  box-shadow: 0 6px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05), 0 0 0 1px rgba(245,166,35,0.08);
+  box-shadow: 0 6px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05), 0 0 0 1px rgba(91,155,240,0.08);
   margin-bottom: 8px;
   position: relative;
   overflow: hidden;
@@ -1739,7 +1757,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(245,166,35,0.6), transparent);
+  background: linear-gradient(90deg, transparent, rgba(91,155,240,0.6), transparent);
 }
 .score-teams {
   gap: 4px;
@@ -1760,7 +1778,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 .score-display {
   font-size: 44px;
   letter-spacing: 6px;
-  text-shadow: 0 0 30px rgba(245,166,35,0.5), 0 0 60px rgba(245,166,35,0.2);
+  text-shadow: 0 0 30px rgba(91,155,240,0.5), 0 0 60px rgba(91,155,240,0.2);
   font-family: 'DM Mono', monospace;
 }
 /* Period progress bar */
@@ -1773,8 +1791,8 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
   background: rgba(255,255,255,0.08);
   transition: background 0.3s ease;
 }
-.period-pip.done  { background: rgba(245,166,35,0.4); }
-.period-pip.active { background: var(--gold); box-shadow: 0 0 6px rgba(245,166,35,0.6); }
+.period-pip.done  { background: rgba(91,155,240,0.4); }
+.period-pip.active { background: var(--gold); box-shadow: 0 0 6px rgba(91,155,240,0.6); }
 .foul-tally {
   display: flex; align-items: center; justify-content: space-between;
   margin-top: 10px; padding-top: 8px;
@@ -1809,7 +1827,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
    mode — the dim/background variants are left alone, so the colour coding of
    each event button is unchanged. */
 [data-theme="light"], [data-theme="auto"] {
-  --gold: #8a5a00;
+  --gold: #14487f;
   --yellow: #7a5200;
   --blue: #0757b3;
   --green: #146b2e;
@@ -1837,21 +1855,24 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 /* The deeper gold reads well AS text, but it also fills the active tab and the
    primary buttons, and the near-black label sitting on those no longer had the
    contrast to carry. White on the deeper gold does. */
-[data-theme="light"] .tab.active,
-[data-theme="auto"]  .tab.active,
-[data-theme="light"] .btn-primary,
-[data-theme="auto"]  .btn-primary,
-[data-theme="light"] .official-tab.active,
-[data-theme="auto"]  .official-tab.active { color: #ffffff; }
+
 
 /* Rating-band chips in the Guide carried their colours as inline styles, so
    they stayed dark-theme hues whatever the theme — 1.8:1 on a light card.
    Tokenised here so both themes get a readable pair. */
-.guide-badge.band-low   { background: var(--red-dim);   color: var(--red); }
-.guide-badge.band-mid   { background: var(--gold-dim);  color: var(--gold); }
+.guide-badge.band-low   { background: var(--red-dim);   color: #ff8585; }
+.guide-badge.band-mid   { background: var(--gold-dim);  color: #8fc0ff; }
 .guide-badge.band-good  { background: var(--green-dim); color: var(--green); }
 .guide-badge.band-high  { background: var(--blue-dim);  color: var(--blue); }
 .guide-badge.band-elite { background: rgba(168,85,247,0.15); color: #c084fc; }
+[data-theme="light"] .guide-badge.band-mid,
+[data-theme="auto"]  .guide-badge.band-mid { color: var(--gold); }
+[data-theme="light"] .guide-badge.band-low,
+[data-theme="auto"]  .guide-badge.band-low { color: var(--red); }
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] .guide-badge.band-mid { color: #8fc0ff; }
+  [data-theme="auto"] .guide-badge.band-low { color: #ff8585; }
+}
 [data-theme="light"] .guide-badge.band-elite,
 [data-theme="auto"]  .guide-badge.band-elite { color: #6b21a8; }
 @media (prefers-color-scheme: dark) {
@@ -1863,19 +1884,18 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 
 @media (prefers-color-scheme: dark) {
   [data-theme="auto"] {
-    --gold: #f5a623;
+    --gold: #5b9bf0;
     --yellow: #e3b341;
     --blue: #58a6ff;
     --green: #3fb950;
     --red: #f85149;
-    --muted2: #3a4055;
+    --muted2: #56637c;
   }
   [data-theme="auto"] .event-btn.yellow .label,
   [data-theme="auto"] .event-btn.yellow .count { color: #e3b341; }
   [data-theme="auto"] .event-btn.pk .label,
-  [data-theme="auto"] .event-btn.pk .count { color: #a855f7; }
+  [data-theme="auto"] .event-btn.pk .count { color: #c084fc; }
   [data-theme="auto"] .clock-btn.primary { color: #08090e; }
-  [data-theme="auto"] .tab.active { color: #0d1117; }
 }
 
 /* ── UNDO TOAST ── */
@@ -1904,7 +1924,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
   display: flex; align-items: center; justify-content: center;
   flex-wrap: wrap; gap: 6px;
   margin-top: 8px; padding-top: 8px;
-  border-top: 1px solid rgba(240,165,0,0.25);
+  border-top: 1px solid rgba(91,155,240,0.25);
 }
 .repeat-fouler-lbl {
   font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;
@@ -1912,7 +1932,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 }
 .repeat-fouler-chip {
   font-size: 10px; padding: 2px 8px; border-radius: 10px;
-  background: var(--gold-dim); color: var(--gold);
+  background: var(--gold-dim); color: var(--text);
   font-family: 'DM Mono', monospace;
 }
 .repeat-fouler-chip strong { font-weight: 700; }
@@ -1947,8 +1967,8 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 [data-theme="light"] .scoreboard,
 [data-theme="auto"]  .scoreboard {
   background: linear-gradient(160deg, #ffffff 0%, #eef1f7 100%);
-  border-color: rgba(200,127,0,0.35);
-  box-shadow: 0 4px 18px rgba(20,30,60,0.10), inset 0 1px 0 rgba(255,255,255,0.8), 0 0 0 1px rgba(200,127,0,0.10);
+  border-color: rgba(26,95,180,0.35);
+  box-shadow: 0 4px 18px rgba(20,30,60,0.10), inset 0 1px 0 rgba(255,255,255,0.8), 0 0 0 1px rgba(26,95,180,0.10);
 }
 [data-theme="light"] .team-name,
 [data-theme="auto"]  .team-name { color: #55607a; }
@@ -1967,12 +1987,12 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 /* "auto" follows the system — restore the dark treatment when the OS is dark */
 @media (prefers-color-scheme: dark) {
   [data-theme="auto"] .scoreboard {
-    background: linear-gradient(160deg, #0e1525 0%, #080e1a 100%);
-    border-color: rgba(245,166,35,0.25);
-    box-shadow: 0 6px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05), 0 0 0 1px rgba(245,166,35,0.08);
+    background: linear-gradient(160deg, #222d42 0%, #1a2331 100%);
+    border-color: rgba(91,155,240,0.25);
+    box-shadow: 0 6px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05), 0 0 0 1px rgba(91,155,240,0.08);
   }
   [data-theme="auto"] .team-name { color: #8899bb; }
-  [data-theme="auto"] .score-display { text-shadow: 0 0 30px rgba(245,166,35,0.5), 0 0 60px rgba(245,166,35,0.2); }
+  [data-theme="auto"] .score-display { text-shadow: 0 0 30px rgba(91,155,240,0.5), 0 0 60px rgba(91,155,240,0.2); }
   [data-theme="auto"] .period-progress,
   [data-theme="auto"] .foul-tally { border-top-color: rgba(255,255,255,0.06); }
   [data-theme="auto"] .period-pip { background: rgba(255,255,255,0.08); }
@@ -1986,7 +2006,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
   background: var(--surface2);
   font-size: 18px;
 }
-.score-btn:active { background: var(--gold); color: #08090e; border-color: var(--gold); }
+.score-btn:active { background: var(--gold); color: var(--on-accent); border-color: var(--gold); }
 
 /* ── CLOCK ── */
 .clock-bar {
@@ -2102,9 +2122,20 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 .event-btn.foul .label, .event-btn.foul .count { color: var(--blue); }
 .event-btn.foul:active { background: rgba(91,164,255,0.24); transform: scale(0.95); }
 
-.event-btn.offside { background: rgba(245,166,35,0.1); border: 1px solid rgba(245,166,35,0.22); }
-.event-btn.offside .label, .event-btn.offside .count { color: var(--gold); }
-.event-btn.offside:active { background: rgba(245,166,35,0.22); transform: scale(0.95); }
+/* Offside kept its own amber rather than following the accent: the accent is
+   now blue, and Foul is blue, so sharing it would have made the two most-used
+   buttons identical. The orange flag icon already reads as amber. */
+.event-btn.offside { background: rgba(240,145,63,0.1); border: 1px solid rgba(240,145,63,0.24); }
+.event-btn.offside .label, .event-btn.offside .count { color: #f0913f; }
+.event-btn.offside:active { background: rgba(240,145,63,0.22); transform: scale(0.95); }
+[data-theme="light"] .event-btn.offside .label,
+[data-theme="light"] .event-btn.offside .count,
+[data-theme="auto"]  .event-btn.offside .label,
+[data-theme="auto"]  .event-btn.offside .count { color: #9a4f00; }
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] .event-btn.offside .label,
+  [data-theme="auto"] .event-btn.offside .count { color: #f0913f; }
+}
 
 .event-btn.yellow { background: rgba(227,179,65,0.12); border: 1px solid rgba(227,179,65,0.28); }
 .event-btn.yellow .label, .event-btn.yellow .count { color: #e3b341; }
@@ -2119,7 +2150,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 .event-btn.goal:active { background: rgba(52,208,88,0.22); transform: scale(0.95); }
 
 .event-btn.pk { background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.25); }
-.event-btn.pk .label, .event-btn.pk .count { color: #a855f7; }
+.event-btn.pk .label, .event-btn.pk .count { color: #c084fc; }
 .event-btn.pk:active { background: rgba(168,85,247,0.22); transform: scale(0.95); }
 
 /* ── PERIOD BUTTONS ── */
@@ -2187,7 +2218,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
   background: var(--surface2);
   border: 1px solid var(--border);
 }
-.field-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(245,166,35,0.12); }
+.field-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(91,155,240,0.12); }
 
 /* ── RADIO BUTTON GROUPS ── */
 .radio-group { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -2227,7 +2258,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
   border-radius: 14px;
   padding: 16px;
   font-size: 15px;
-  box-shadow: 0 4px 16px rgba(245,166,35,0.3);
+  box-shadow: 0 4px 16px rgba(91,155,240,0.3);
   letter-spacing: 0.3px;
 }
 .btn-primary:active { box-shadow: none; }
@@ -2310,7 +2341,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 }
 .hiw-step-num {
   width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
-  background: var(--gold); color: #08090e;
+  background: var(--gold); color: var(--on-accent);
   display: flex; align-items: center; justify-content: center;
   font-family: 'Syne', sans-serif; font-weight: 800; font-size: 13px;
 }
@@ -2344,14 +2375,14 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 .onboard-badge {
   width: 88px; height: 88px; border-radius: 22px;
   background: linear-gradient(145deg, #1a1d28, #252836);
-  border: 1px solid rgba(245,166,35,0.3);
-  box-shadow: 0 0 40px rgba(245,166,35,0.15);
+  border: 1px solid rgba(91,155,240,0.3);
+  box-shadow: 0 0 40px rgba(91,155,240,0.15);
   display: flex; align-items: center; justify-content: center;
   font-size: 44px; margin-bottom: 28px;
 }
 .onboard-title {
   font-family: 'Syne', sans-serif; font-size: 34px; font-weight: 800;
-  color: #f5a623; letter-spacing: 0.5px; margin-bottom: 6px;
+  color: #5b9bf0; letter-spacing: 0.5px; margin-bottom: 6px;
 }
 .onboard-subtitle {
   font-size: 15px; font-weight: 600; color: #edf0f7;
@@ -2369,7 +2400,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
   display: flex; align-items: center; justify-content: center;
   font-size: 18px;
 }
-.onboard-feature-icon.gold  { background: rgba(245,166,35,0.12); border: 1px solid rgba(245,166,35,0.2); }
+.onboard-feature-icon.gold  { background: rgba(91,155,240,0.12); border: 1px solid rgba(91,155,240,0.2); }
 .onboard-feature-icon.blue  { background: rgba(91,164,255,0.12); border: 1px solid rgba(91,164,255,0.2); }
 .onboard-feature-icon.red   { background: rgba(255,92,92,0.12);  border: 1px solid rgba(255,92,92,0.2); }
 .onboard-feature-icon.green { background: rgba(52,208,88,0.12);  border: 1px solid rgba(52,208,88,0.2); }
@@ -2377,9 +2408,9 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 .onboard-feature-text span   { font-size: 12px; color: #7a8499; line-height: 1.4; }
 .onboard-btn {
   width: 100%; max-width: 320px; padding: 16px;
-  background: #f5a623; border: none; border-radius: 14px;
+  background: #5b9bf0; border: none; border-radius: 14px;
   font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800;
-  color: #08090e; cursor: pointer; letter-spacing: 0.3px;
+  color: var(--on-accent); cursor: pointer; letter-spacing: 0.3px;
 }
 .onboard-btn:active { opacity: 0.85; transform: scale(0.98); }
 .onboard-footer {
@@ -2525,7 +2556,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
   background: var(--surface2);
   border: 1px solid var(--border);
 }
-.official-tab.active { background: var(--gold); color: #08090e; border-color: var(--gold); box-shadow: 0 2px 8px rgba(245,166,35,0.3); }
+.official-tab.active { background: var(--gold); color: var(--on-accent); border-color: var(--gold); box-shadow: 0 2px 8px rgba(91,155,240,0.3); }
 
 /* ── RATING BANDS ── */
 .band-btn {
@@ -2538,9 +2569,9 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 }
 .band-btn.selected {
   border-color: var(--gold);
-  background: rgba(245,166,35,0.15);
+  background: rgba(91,155,240,0.15);
   color: var(--gold);
-  box-shadow: 0 0 8px rgba(245,166,35,0.2);
+  box-shadow: 0 0 8px rgba(91,155,240,0.2);
 }
 
 /* ── FINALIZE BAR ── */
@@ -2562,7 +2593,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 .btn-log-pdf {
   border-radius: 12px;
   font-size: 13px;
-  border: 1px solid rgba(245,166,35,0.4);
+  border: 1px solid rgba(91,155,240,0.4);
 }
 
 /* ── THEME / SETTINGS BUTTONS ── */
@@ -4212,7 +4243,7 @@ function animateGoal() {
   const el = document.getElementById('scoreDisplay');
   el.style.transition = 'transform 0.15s ease, text-shadow 0.15s ease';
   el.style.transform = 'scale(1.25)';
-  el.style.textShadow = '0 0 40px rgba(245,166,35,0.9), 0 0 80px rgba(245,166,35,0.5)';
+  el.style.textShadow = '0 0 40px rgba(91,155,240,0.9), 0 0 80px rgba(91,155,240,0.5)';
   setTimeout(() => {
     el.style.transform = 'scale(1)';
     el.style.textShadow = '';
@@ -6487,7 +6518,7 @@ function showTextFallback(filename, content) {
   box.innerHTML = `<div style="font-weight:700;color:var(--text,#e6edf3);font-size:15px;">${filename}</div>
     <textarea readonly style="flex:1;min-height:300px;width:100%;font-family:monospace;font-size:12px;padding:10px;border-radius:8px;border:1px solid var(--border,#30363d);background:var(--surface2,#0d1117);color:var(--text,#e6edf3);">${content.replace(/</g,'&lt;')}</textarea>
     <div style="display:flex;gap:8px;">
-      <button id="ftCopy" style="flex:1;padding:12px;border-radius:10px;border:none;background:var(--gold,#f5a623);color:#08090e;font-weight:700;">Copy All</button>
+      <button id="ftCopy" style="flex:1;padding:12px;border-radius:10px;border:none;background:var(--gold,#5b9bf0);color:#08090e;font-weight:700;">Copy All</button>
       <button id="ftClose" style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--border,#30363d);background:transparent;color:var(--text,#e6edf3);">Close</button>
     </div>`;
   overlay.appendChild(box);
@@ -6595,22 +6626,22 @@ function printReport() {
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: Georgia, serif; font-size: 11pt; color: #1a1a1a; padding: 40px; max-width: 750px; margin: 0 auto; }
-  h1 { font-family: Arial, sans-serif; font-size: 20pt; font-weight: 900; color: #c87f00; margin-bottom: 4px; }
+  h1 { font-family: Arial, sans-serif; font-size: 20pt; font-weight: 900; color: #1a5fb4; margin-bottom: 4px; }
   .meta { font-size: 9pt; color: #666; margin-bottom: 6px; }
-  .scorebox { font-size: 28pt; font-weight: 900; color: #c87f00; }
+  .scorebox { font-size: 28pt; font-weight: 900; color: #1a5fb4; }
   .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
   .info-cell { background: #f7f7f7; padding: 8px 12px; border-radius: 4px; }
   .info-cell label { font-size: 8pt; text-transform: uppercase; letter-spacing: 1px; color: #999; display: block; margin-bottom: 2px; font-family: Arial, sans-serif; }
   .info-cell span { font-size: 11pt; font-weight: 600; color: #1a1a1a; }
   .crew-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 10pt; }
-  .crew-table th { background: #1a1a1a; color: #f0a500; padding: 7px 10px; text-align: left; font-family: Arial, sans-serif; font-size: 8pt; letter-spacing: 1px; }
+  .crew-table th { background: #1a1a1a; color: #5b9bf0; padding: 7px 10px; text-align: left; font-family: Arial, sans-serif; font-size: 8pt; letter-spacing: 1px; }
   .crew-table td { padding: 8px 10px; border-bottom: 1px solid #eee; }
   .crew-table tr:nth-child(even) td { background: #f9f9f9; }
-  .crew-role { font-weight: 700; color: #c87f00; font-size: 9pt; }
+  .crew-role { font-weight: 700; color: #1a5fb4; font-size: 9pt; }
   .crew-cert { font-size: 9pt; color: #666; }
   .stats { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
   .stat { background: #f5f5f5; padding: 6px 12px; border-radius: 4px; font-size: 10pt; text-align:center; min-width: 60px; }
-  .stat strong { display: block; font-size: 16pt; color: #c87f00; font-family: Arial, sans-serif; }
+  .stat strong { display: block; font-size: 16pt; color: #1a5fb4; font-family: Arial, sans-serif; }
   .official { margin-bottom: 32px; page-break-inside: avoid; }
   .off-header { background: #1a1a1a; color: white; padding: 12px 16px; border-radius: 6px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
   .off-role { font-size: 8pt; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
@@ -6618,12 +6649,12 @@ function printReport() {
   .off-caps { font-size: 8pt; color: #aaa; margin-top: 4px; }
   .score-badge { font-size: 24pt; font-weight: 900; padding: 8px 14px; border-radius: 6px; color: #1a1a1a; }
   .score-high { background: #3fb950; }
-  .score-mid { background: #f0a500; }
+  .score-mid { background: #5b9bf0; }
   .score-low { background: #f85149; }
   .scorecard { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-bottom: 12px; }
   .sc { background: #f5f5f5; padding: 8px; border-radius: 4px; }
   .sc label { font-size: 8pt; color: #666; display: block; font-family: Arial, sans-serif; }
-  .sc span { font-size: 14pt; font-weight: 700; color: #c87f00; }
+  .sc span { font-size: 14pt; font-weight: 700; color: #1a5fb4; }
   .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
   .tag { font-size: 9pt; padding: 2px 10px; border-radius: 20px; font-weight: 600; font-family: Arial, sans-serif; }
   .tag.pos { background: #e6f4ec; color: #2e7d4f; }
@@ -6632,7 +6663,7 @@ function printReport() {
   p { line-height: 1.8; margin-bottom: 8px; font-size: 10.5pt; }
   .incidents { background: #fff5f5; border-left: 3px solid #f85149; padding: 10px 14px; margin-top: 10px; border-radius: 0 4px 4px 0; }
   .incidents p { color: #c0392b; font-size: 10pt; }
-  .divider { border: none; border-top: 2px solid #f0a500; margin: 24px 0; }
+  .divider { border: none; border-top: 2px solid #5b9bf0; margin: 24px 0; }
   .log-entry { font-size: 9pt; color: #444; padding: 3px 0; border-bottom: 1px solid #eee; font-family: monospace; }
   .log-time { color: #999; min-width: 40px; display: inline-block; }
   .section-head { font-family: Arial, sans-serif; font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #888; margin: 16px 0 6px; }
@@ -6705,7 +6736,7 @@ ${officials.map(off => {
     </div>
     <div class="scorecard">${scHtml}</div>
     <div class="tags">${posTags}${devTags}</div>
-    <h3>Coaching Feedback${off._edited ? ' <span style="color:#c87f00;font-weight:400;text-transform:none;letter-spacing:0;">(revised by coach)</span>' : ''}</h3>
+    <h3>Coaching Feedback${off._edited ? ' <span style="color:#1a5fb4;font-weight:400;text-transform:none;letter-spacing:0;">(revised by coach)</span>' : ''}</h3>
     ${paragraphs}
     ${(off.criticalIncidents||[]).length ? `<div class="incidents"><strong>Critical Incidents</strong>${off.criticalIncidents.map(i=>`<p>• ${i}</p>`).join('')}</div>` : ''}
   </div><hr class="divider">`;
@@ -8015,7 +8046,7 @@ function buildSparklineSVG(points) {
   const dots = coords.map(c => `<circle cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" r="3.5" fill="var(--gold)"/>`).join('');
   const areaPath = `${path} L${coords[coords.length - 1][0].toFixed(1)},${h - padY} L${coords[0][0].toFixed(1)},${h - padY} Z`;
   return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:90px;overflow:visible;">
-    <path d="${areaPath}" fill="rgba(245,166,35,0.12)" stroke="none"/>
+    <path d="${areaPath}" fill="rgba(91,155,240,0.12)" stroke="none"/>
     <path d="${path}" fill="none" stroke="var(--gold)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
     ${dots}
   </svg>`;
@@ -8076,7 +8107,7 @@ function toast(msg) {
   if (!t) {
     t = document.createElement('div');
     t.id = 'appToast';
-    t.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:99999;background:var(--surface2,#181c26);color:var(--text,#edf0f7);border:1px solid var(--gold,#f5a623);padding:12px 18px;border-radius:12px;font-size:14px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,0.4);opacity:0;transition:opacity 0.2s;';
+    t.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:99999;background:var(--surface2,#181c26);color:var(--text,#edf0f7);border:1px solid var(--gold,#5b9bf0);padding:12px 18px;border-radius:12px;font-size:14px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,0.4);opacity:0;transition:opacity 0.2s;';
     document.body.appendChild(t);
   }
   t.textContent = msg;

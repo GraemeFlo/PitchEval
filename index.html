@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PitchEval">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#161d2b">
+<meta name="theme-color" content="#2c3138">
 <meta name="description" content="Soccer referee evaluation tool for US Soccer">
 <meta name="application-name" content="PitchEval">
 
@@ -34,11 +34,11 @@ button {
 }
 
 :root {
-  --bg: #161d2b;
-  --surface: #1e2739;
-  --surface2: #283347;
-  --border: #38455c;
-  --gold: #5b9bf0;
+  --bg: #2c3138;
+  --surface: #353b44;
+  --surface2: #404751;
+  --border: #4f5763;
+  --gold: #7fb2f5;
   --gold-dim: rgba(91,155,240,0.15);
   --green: #3fb950;
   --green-dim: rgba(63,185,80,0.15);
@@ -47,20 +47,20 @@ button {
   --blue: #58a6ff;
   --blue-dim: rgba(88,166,255,0.12);
   --yellow: #e3b341;
-  --text: #e8eef8;
-  --muted: #96a3ba;
-  --muted2: #56637c;
+  --text: #eceff4;
+  --muted: #aeb7c4;
+  --muted2: #78828f;
   --radius: 12px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* ── DARK MODE (explicit attribute) ── */
 [data-theme="dark"] {
-  --bg: #161d2b;
-  --surface: #1e2739;
-  --surface2: #283347;
-  --border: #38455c;
-  --gold: #5b9bf0;
+  --bg: #2c3138;
+  --surface: #353b44;
+  --surface2: #404751;
+  --border: #4f5763;
+  --gold: #7fb2f5;
   --gold-dim: rgba(91,155,240,0.15);
   --green: #3fb950;
   --green-dim: rgba(63,185,80,0.15);
@@ -69,9 +69,9 @@ button {
   --blue: #58a6ff;
   --blue-dim: rgba(88,166,255,0.12);
   --yellow: #e3b341;
-  --text: #e8eef8;
-  --muted: #96a3ba;
-  --muted2: #56637c;
+  --text: #eceff4;
+  --muted: #aeb7c4;
+  --muted2: #78828f;
 }
 
 /* ── LIGHT MODE VARIABLES ── */
@@ -115,11 +115,11 @@ button {
 }
 @media (prefers-color-scheme: dark) {
   [data-theme="auto"] {
-    --bg: #161d2b;
-    --surface: #1e2739;
-    --surface2: #283347;
-    --border: #38455c;
-    --gold: #5b9bf0;
+    --bg: #2c3138;
+    --surface: #353b44;
+    --surface2: #404751;
+    --border: #4f5763;
+    --gold: #7fb2f5;
     --gold-dim: rgba(91,155,240,0.15);
     --green: #3fb950;
     --green-dim: rgba(63,185,80,0.15);
@@ -128,9 +128,9 @@ button {
     --blue: #58a6ff;
     --blue-dim: rgba(88,166,255,0.12);
     --yellow: #e3b341;
-    --text: #e8eef8;
-    --muted: #96a3ba;
-    --muted2: #56637c;
+    --text: #eceff4;
+    --muted: #aeb7c4;
+    --muted2: #78828f;
   }
 }
 
@@ -1535,21 +1535,21 @@ textarea { resize: none; line-height: 1.5; min-height: 60px; }
    name stuck because ~70 rules reference it; the value is now blue. Treat it
    as "accent", and prefer --accent (aliased below) in new rules. */
 :root {
-  --bg: #161d2b;
-  --surface: #1e2739;
-  --surface2: #283347;
-  --border: #38455c;
-  --gold: #5b9bf0;
+  --bg: #2c3138;
+  --surface: #353b44;
+  --surface2: #404751;
+  --border: #4f5763;
+  --gold: #7fb2f5;
   --gold-dim: rgba(91,155,240,0.14);
-  --green: #34d058;
+  --green: #63de83;
   --green-dim: rgba(52,208,88,0.13);
-  --red: #ff5c5c;
+  --red: #ff9090;
   --red-dim: rgba(255,92,92,0.13);
-  --blue: #5ba4ff;
+  --blue: #8cc0ff;
   --blue-dim: rgba(91,164,255,0.12);
-  --text: #e8eef8;
-  --muted: #96a3ba;
-  --muted2: #56637c;
+  --text: #eceff4;
+  --muted: #aeb7c4;
+  --muted2: #78828f;
   --radius: 14px;
   --radius-sm: 8px;
   --shadow: 0 4px 24px rgba(0,0,0,0.45);
@@ -1571,21 +1571,21 @@ textarea { resize: none; line-height: 1.5; min-height: 60px; }
   [data-theme="auto"] { --on-accent: #131a27; }
 }
 [data-theme="dark"] {
-  --bg: #161d2b;
-  --surface: #1e2739;
-  --surface2: #283347;
-  --border: #38455c;
-  --gold: #5b9bf0;
+  --bg: #2c3138;
+  --surface: #353b44;
+  --surface2: #404751;
+  --border: #4f5763;
+  --gold: #7fb2f5;
   --gold-dim: rgba(91,155,240,0.14);
-  --green: #34d058;
+  --green: #63de83;
   --green-dim: rgba(52,208,88,0.13);
-  --red: #ff5c5c;
+  --red: #ff9090;
   --red-dim: rgba(255,92,92,0.13);
-  --blue: #5ba4ff;
+  --blue: #8cc0ff;
   --blue-dim: rgba(91,164,255,0.12);
-  --text: #e8eef8;
-  --muted: #96a3ba;
-  --muted2: #56637c;
+  --text: #eceff4;
+  --muted: #aeb7c4;
+  --muted2: #78828f;
 }
 [data-theme="light"] {
   --bg: #f4f6fa;
@@ -1625,21 +1625,21 @@ textarea { resize: none; line-height: 1.5; min-height: 60px; }
 }
 @media (prefers-color-scheme: dark) {
   [data-theme="auto"] {
-    --bg: #161d2b;
-    --surface: #1e2739;
-    --surface2: #283347;
-    --border: #38455c;
-    --gold: #5b9bf0;
+    --bg: #2c3138;
+    --surface: #353b44;
+    --surface2: #404751;
+    --border: #4f5763;
+    --gold: #7fb2f5;
     --gold-dim: rgba(91,155,240,0.14);
-    --green: #34d058;
+    --green: #63de83;
     --green-dim: rgba(52,208,88,0.13);
-    --red: #ff5c5c;
+    --red: #ff9090;
     --red-dim: rgba(255,92,92,0.13);
-    --blue: #5ba4ff;
+    --blue: #8cc0ff;
     --blue-dim: rgba(91,164,255,0.12);
-    --text: #e8eef8;
-    --muted: #96a3ba;
-    --muted2: #56637c;
+    --text: #eceff4;
+    --muted: #aeb7c4;
+    --muted2: #78828f;
   }
 }
 
@@ -1689,7 +1689,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 
 /* ── HEADER ── */
 .app-header {
-  background: linear-gradient(180deg, #1b2434 0%, #161d2b 100%);
+  background: linear-gradient(180deg, #363c46 0%, #2c3138 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 2px solid var(--gold);
@@ -1700,7 +1700,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 .app-title {
   font-size: 22px;
   letter-spacing: -0.3px;
-  background: linear-gradient(90deg, #5b9bf0, #8fc0ff);
+  background: linear-gradient(90deg, #7fb2f5, #a6cdff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -1743,7 +1743,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 
 /* ── SCOREBOARD ── */
 .scoreboard {
-  background: linear-gradient(160deg, #222d42 0%, #1a2331 100%);
+  background: linear-gradient(160deg, #3a414c 0%, #31373f 100%);
   border: 1px solid rgba(91,155,240,0.25);
   border-radius: 18px;
   padding: 14px 14px 10px;
@@ -1766,7 +1766,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 .team-name {
   font-size: 12px;
   font-weight: 700;
-  color: #8899bb;
+  color: #b9c4d8;
   line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
@@ -1860,23 +1860,23 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 /* Rating-band chips in the Guide carried their colours as inline styles, so
    they stayed dark-theme hues whatever the theme — 1.8:1 on a light card.
    Tokenised here so both themes get a readable pair. */
-.guide-badge.band-low   { background: var(--red-dim);   color: #ff8585; }
-.guide-badge.band-mid   { background: var(--gold-dim);  color: #8fc0ff; }
+.guide-badge.band-low   { background: var(--red-dim);   color: #ffa3a3; }
+.guide-badge.band-mid   { background: var(--gold-dim);  color: #a6cdff; }
 .guide-badge.band-good  { background: var(--green-dim); color: var(--green); }
 .guide-badge.band-high  { background: var(--blue-dim);  color: var(--blue); }
-.guide-badge.band-elite { background: rgba(168,85,247,0.15); color: #c084fc; }
+.guide-badge.band-elite { background: rgba(168,85,247,0.15); color: #d4b0ff; }
 [data-theme="light"] .guide-badge.band-mid,
 [data-theme="auto"]  .guide-badge.band-mid { color: var(--gold); }
 [data-theme="light"] .guide-badge.band-low,
 [data-theme="auto"]  .guide-badge.band-low { color: var(--red); }
 @media (prefers-color-scheme: dark) {
-  [data-theme="auto"] .guide-badge.band-mid { color: #8fc0ff; }
-  [data-theme="auto"] .guide-badge.band-low { color: #ff8585; }
+  [data-theme="auto"] .guide-badge.band-mid { color: #a6cdff; }
+  [data-theme="auto"] .guide-badge.band-low { color: #ffa3a3; }
 }
 [data-theme="light"] .guide-badge.band-elite,
 [data-theme="auto"]  .guide-badge.band-elite { color: #6b21a8; }
 @media (prefers-color-scheme: dark) {
-  [data-theme="auto"] .guide-badge.band-elite { color: #c084fc; }
+  [data-theme="auto"] .guide-badge.band-elite { color: #d4b0ff; }
 }
 
 /* Sits on the gold-tinted overall card, where --muted lands just under 4.5:1 */
@@ -1884,17 +1884,17 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 
 @media (prefers-color-scheme: dark) {
   [data-theme="auto"] {
-    --gold: #5b9bf0;
+    --gold: #7fb2f5;
     --yellow: #e3b341;
     --blue: #58a6ff;
     --green: #3fb950;
     --red: #f85149;
-    --muted2: #56637c;
+    --muted2: #78828f;
   }
   [data-theme="auto"] .event-btn.yellow .label,
   [data-theme="auto"] .event-btn.yellow .count { color: #e3b341; }
   [data-theme="auto"] .event-btn.pk .label,
-  [data-theme="auto"] .event-btn.pk .count { color: #c084fc; }
+  [data-theme="auto"] .event-btn.pk .count { color: #d4b0ff; }
   [data-theme="auto"] .clock-btn.primary { color: #08090e; }
 }
 
@@ -1987,11 +1987,11 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 /* "auto" follows the system — restore the dark treatment when the OS is dark */
 @media (prefers-color-scheme: dark) {
   [data-theme="auto"] .scoreboard {
-    background: linear-gradient(160deg, #222d42 0%, #1a2331 100%);
+    background: linear-gradient(160deg, #3a414c 0%, #31373f 100%);
     border-color: rgba(91,155,240,0.25);
     box-shadow: 0 6px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05), 0 0 0 1px rgba(91,155,240,0.08);
   }
-  [data-theme="auto"] .team-name { color: #8899bb; }
+  [data-theme="auto"] .team-name { color: #b9c4d8; }
   [data-theme="auto"] .score-display { text-shadow: 0 0 30px rgba(91,155,240,0.5), 0 0 60px rgba(91,155,240,0.2); }
   [data-theme="auto"] .period-progress,
   [data-theme="auto"] .foul-tally { border-top-color: rgba(255,255,255,0.06); }
@@ -2126,7 +2126,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
    now blue, and Foul is blue, so sharing it would have made the two most-used
    buttons identical. The orange flag icon already reads as amber. */
 .event-btn.offside { background: rgba(240,145,63,0.1); border: 1px solid rgba(240,145,63,0.24); }
-.event-btn.offside .label, .event-btn.offside .count { color: #f0913f; }
+.event-btn.offside .label, .event-btn.offside .count { color: #f5a862; }
 .event-btn.offside:active { background: rgba(240,145,63,0.22); transform: scale(0.95); }
 [data-theme="light"] .event-btn.offside .label,
 [data-theme="light"] .event-btn.offside .count,
@@ -2134,7 +2134,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 [data-theme="auto"]  .event-btn.offside .count { color: #9a4f00; }
 @media (prefers-color-scheme: dark) {
   [data-theme="auto"] .event-btn.offside .label,
-  [data-theme="auto"] .event-btn.offside .count { color: #f0913f; }
+  [data-theme="auto"] .event-btn.offside .count { color: #f5a862; }
 }
 
 .event-btn.yellow { background: rgba(227,179,65,0.12); border: 1px solid rgba(227,179,65,0.28); }
@@ -2150,7 +2150,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 .event-btn.goal:active { background: rgba(52,208,88,0.22); transform: scale(0.95); }
 
 .event-btn.pk { background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.25); }
-.event-btn.pk .label, .event-btn.pk .count { color: #c084fc; }
+.event-btn.pk .label, .event-btn.pk .count { color: #d4b0ff; }
 .event-btn.pk:active { background: rgba(168,85,247,0.22); transform: scale(0.95); }
 
 /* ── PERIOD BUTTONS ── */
@@ -2382,7 +2382,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 }
 .onboard-title {
   font-family: 'Syne', sans-serif; font-size: 34px; font-weight: 800;
-  color: #5b9bf0; letter-spacing: 0.5px; margin-bottom: 6px;
+  color: #7fb2f5; letter-spacing: 0.5px; margin-bottom: 6px;
 }
 .onboard-subtitle {
   font-size: 15px; font-weight: 600; color: #edf0f7;
@@ -2408,7 +2408,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 .onboard-feature-text span   { font-size: 12px; color: #7a8499; line-height: 1.4; }
 .onboard-btn {
   width: 100%; max-width: 320px; padding: 16px;
-  background: #5b9bf0; border: none; border-radius: 14px;
+  background: #7fb2f5; border: none; border-radius: 14px;
   font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800;
   color: var(--on-accent); cursor: pointer; letter-spacing: 0.3px;
 }
@@ -6518,7 +6518,7 @@ function showTextFallback(filename, content) {
   box.innerHTML = `<div style="font-weight:700;color:var(--text,#e6edf3);font-size:15px;">${filename}</div>
     <textarea readonly style="flex:1;min-height:300px;width:100%;font-family:monospace;font-size:12px;padding:10px;border-radius:8px;border:1px solid var(--border,#30363d);background:var(--surface2,#0d1117);color:var(--text,#e6edf3);">${content.replace(/</g,'&lt;')}</textarea>
     <div style="display:flex;gap:8px;">
-      <button id="ftCopy" style="flex:1;padding:12px;border-radius:10px;border:none;background:var(--gold,#5b9bf0);color:#08090e;font-weight:700;">Copy All</button>
+      <button id="ftCopy" style="flex:1;padding:12px;border-radius:10px;border:none;background:var(--gold,#7fb2f5);color:#08090e;font-weight:700;">Copy All</button>
       <button id="ftClose" style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--border,#30363d);background:transparent;color:var(--text,#e6edf3);">Close</button>
     </div>`;
   overlay.appendChild(box);
@@ -6634,7 +6634,7 @@ function printReport() {
   .info-cell label { font-size: 8pt; text-transform: uppercase; letter-spacing: 1px; color: #999; display: block; margin-bottom: 2px; font-family: Arial, sans-serif; }
   .info-cell span { font-size: 11pt; font-weight: 600; color: #1a1a1a; }
   .crew-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 10pt; }
-  .crew-table th { background: #1a1a1a; color: #5b9bf0; padding: 7px 10px; text-align: left; font-family: Arial, sans-serif; font-size: 8pt; letter-spacing: 1px; }
+  .crew-table th { background: #1a1a1a; color: #7fb2f5; padding: 7px 10px; text-align: left; font-family: Arial, sans-serif; font-size: 8pt; letter-spacing: 1px; }
   .crew-table td { padding: 8px 10px; border-bottom: 1px solid #eee; }
   .crew-table tr:nth-child(even) td { background: #f9f9f9; }
   .crew-role { font-weight: 700; color: #1a5fb4; font-size: 9pt; }
@@ -6649,7 +6649,7 @@ function printReport() {
   .off-caps { font-size: 8pt; color: #aaa; margin-top: 4px; }
   .score-badge { font-size: 24pt; font-weight: 900; padding: 8px 14px; border-radius: 6px; color: #1a1a1a; }
   .score-high { background: #3fb950; }
-  .score-mid { background: #5b9bf0; }
+  .score-mid { background: #7fb2f5; }
   .score-low { background: #f85149; }
   .scorecard { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-bottom: 12px; }
   .sc { background: #f5f5f5; padding: 8px; border-radius: 4px; }
@@ -6663,7 +6663,7 @@ function printReport() {
   p { line-height: 1.8; margin-bottom: 8px; font-size: 10.5pt; }
   .incidents { background: #fff5f5; border-left: 3px solid #f85149; padding: 10px 14px; margin-top: 10px; border-radius: 0 4px 4px 0; }
   .incidents p { color: #c0392b; font-size: 10pt; }
-  .divider { border: none; border-top: 2px solid #5b9bf0; margin: 24px 0; }
+  .divider { border: none; border-top: 2px solid #7fb2f5; margin: 24px 0; }
   .log-entry { font-size: 9pt; color: #444; padding: 3px 0; border-bottom: 1px solid #eee; font-family: monospace; }
   .log-time { color: #999; min-width: 40px; display: inline-block; }
   .section-head { font-family: Arial, sans-serif; font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #888; margin: 16px 0 6px; }
@@ -8107,7 +8107,7 @@ function toast(msg) {
   if (!t) {
     t = document.createElement('div');
     t.id = 'appToast';
-    t.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:99999;background:var(--surface2,#181c26);color:var(--text,#edf0f7);border:1px solid var(--gold,#5b9bf0);padding:12px 18px;border-radius:12px;font-size:14px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,0.4);opacity:0;transition:opacity 0.2s;';
+    t.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:99999;background:var(--surface2,#181c26);color:var(--text,#edf0f7);border:1px solid var(--gold,#7fb2f5);padding:12px 18px;border-radius:12px;font-size:14px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,0.4);opacity:0;transition:opacity 0.2s;';
     document.body.appendChild(t);
   }
   t.textContent = msg;

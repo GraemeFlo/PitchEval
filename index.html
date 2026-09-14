@@ -1790,6 +1790,13 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
   font-size: 9px; font-weight: 700; color: var(--muted2);
   letter-spacing: 1.5px; padding: 0 10px;
 }
+.foul-half-split {
+  display: flex; justify-content: center; gap: 18px;
+  margin-top: 6px;
+}
+.foul-half-cell { display: flex; align-items: baseline; gap: 5px; }
+.foul-half-lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.foul-half-val { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 600; color: var(--muted); }
 .score-btns { gap: 5px; margin-top: 4px; }
 .score-btn {
   width: 32px;
@@ -2848,6 +2855,10 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
           <div class="foul-mid">FOULS</div>
           <div class="foul-side"><span class="foul-lbl">Fouls</span><span class="foul-num" id="foulAway">0</span></div>
         </div>
+        <div class="foul-half-split" id="foulHalfSplit">
+          <div class="foul-half-cell"><span class="foul-half-lbl">1st Half</span><span class="foul-half-val" id="foulHalf1h">0–0</span></div>
+          <div class="foul-half-cell"><span class="foul-half-lbl">2nd Half</span><span class="foul-half-val" id="foulHalf2h">0–0</span></div>
+        </div>
       </div>
 
       <!-- Clock -->
@@ -3438,6 +3449,7 @@ const state = {
   log: [],
   counts: { foul: 0, offside: 0, yellow: 0, red: 0, goal: 0, pk: 0 },
   foulsByTeam: { home: 0, away: 0 },
+  foulsByPeriod: {},
   pso: { home: [], away: [] },
   officials: [
     { role: 'Referee', ratings: {}, toggles: { capacityCurrent: null, capacityHigher: null, receptive: null }, toggleNotes: { capacityCurrent: '', capacityHigher: '', receptive: '' }, notes: '', incidents: '' },
@@ -3712,8 +3724,9 @@ function confirmReset() {
     if (el) el.textContent = '0';
   });
 
-  // Reset per-team foul tally
+  // Reset per-team and per-period foul tally
   state.foulsByTeam = { home: 0, away: 0 };
+  state.foulsByPeriod = {};
   updateFoulTally();
 
   // New match → new library entry (don't overwrite the previous saved match)
@@ -3866,6 +3879,12 @@ function updateFoulTally() {
   const a = document.getElementById('foulAway');
   if (h) h.textContent = state.foulsByTeam?.home || 0;
   if (a) a.textContent = state.foulsByTeam?.away || 0;
+
+  const fbp = state.foulsByPeriod || {};
+  const h1 = document.getElementById('foulHalf1h');
+  const h2 = document.getElementById('foulHalf2h');
+  if (h1) { const p = fbp['1h'] || { home: 0, away: 0 }; h1.textContent = `${p.home || 0}–${p.away || 0}`; }
+  if (h2) { const p = fbp['2h'] || { home: 0, away: 0 }; h2.textContent = `${p.home || 0}–${p.away || 0}`; }
 }
 
 function updateClockDisplay() {
@@ -4304,6 +4323,30 @@ function logEvent(type) {
 
 function closeEventModal() { document.getElementById('eventModal').classList.remove('open'); state.pendingEvent = null; state._editingLogId = null; }
 
+// Undo a structured event entry's counted effects (counts, per-team foul
+// tally, per-period foul tally, score). Shared by the edit-reversal path in
+// saveEvent() and by deleteLog() — without this, editing or deleting an
+// event used to leave the header tallies permanently out of sync.
+function reverseEventEffects(o) {
+  if (!o || o.kind !== 'event') return;
+  if (state.counts[o.type] > 0) {
+    state.counts[o.type]--;
+    const el = document.getElementById(`cnt-${o.type}`);
+    if (el) el.textContent = state.counts[o.type];
+  }
+  if (o.type === 'foul' && (o.team === 'home' || o.team === 'away')) {
+    state.foulsByTeam[o.team] = Math.max(0, (state.foulsByTeam[o.team] || 0) - 1);
+    const per = o.period && state.foulsByPeriod[o.period];
+    if (per) per[o.team] = Math.max(0, (per[o.team] || 0) - 1);
+    updateFoulTally();
+  }
+  if (o.type === 'goal' && (o.team === 'home' || o.team === 'away')) {
+    state.score[o.team] = Math.max(0, (state.score[o.team] || 0) - 1);
+    const sd = document.getElementById('scoreDisplay');
+    if (sd) sd.textContent = `${state.score.home} – ${state.score.away}`;
+  }
+}
+
 function saveEvent() {
   const type = state.pendingEvent.type;
   const seqThenCMI = !!state.pendingEvent.thenCMI;   // foul opened as part of a yellow-card sequence
@@ -4336,28 +4379,26 @@ function saveEvent() {
 
   const flagged = document.getElementById('ev_flag')?.classList.contains('active') || false;
   const editingId = state._editingLogId;
-  const editData = { kind: 'event', type, team, side, foulType, foulNature, offsideType, offense, player, scorer, pkRes, note, attachments: _pendingAttachments.slice() };
+  const oldEntry = editingId ? state.log.find(e => e.id === editingId) : null;
+  // Preserve the period the event originally happened in when editing (an edit
+  // made later in the match shouldn't move a foul into the current period's tally)
+  const eventPeriod = (oldEntry && oldEntry.edit && oldEntry.edit.period) || state.clock.period;
+  const editData = { kind: 'event', type, team, side, foulType, foulNature, offsideType, offense, player, scorer, pkRes, note, period: eventPeriod, attachments: _pendingAttachments.slice() };
 
   // When editing, first reverse the original entry's counted effects
   if (editingId) {
-    const old = state.log.find(e => e.id === editingId);
-    const o = old && old.edit;
-    if (o) {
-      if (state.counts[o.type] > 0) state.counts[o.type]--;
-      if (o.type === 'foul' && (o.team === 'home' || o.team === 'away'))
-        state.foulsByTeam[o.team] = Math.max(0, (state.foulsByTeam[o.team] || 0) - 1);
-      if (o.type === 'goal' && (o.team === 'home' || o.team === 'away'))
-        state.score[o.team] = Math.max(0, (state.score[o.team] || 0) - 1);
-    }
+    reverseEventEffects(oldEntry && oldEntry.edit);
   }
 
   // Apply this event's counted effects
   state.counts[type]++;
   document.getElementById(`cnt-${type}`).textContent = state.counts[type];
 
-  // Per-team foul tally under the scoreboard
+  // Per-team and per-period foul tally under the scoreboard
   if (type === 'foul' && (team === 'home' || team === 'away')) {
     state.foulsByTeam[team] = (state.foulsByTeam[team] || 0) + 1;
+    if (!state.foulsByPeriod[editData.period]) state.foulsByPeriod[editData.period] = { home: 0, away: 0 };
+    state.foulsByPeriod[editData.period][team] = (state.foulsByPeriod[editData.period][team] || 0) + 1;
   }
   updateFoulTally();
 
@@ -4520,6 +4561,7 @@ function addLogItem(icon, desc, time, flagged = false, editData = null) {
 
 function deleteLog(id) {
   const removed = state.log.find(e => e.id === id);
+  if (removed && removed.edit) reverseEventEffects(removed.edit);
   state.log = state.log.filter(e => e.id !== id);
   renderLog();
   if (removed && removed.edit) deleteAttachmentFiles(removed.edit.attachments);
@@ -6744,6 +6786,7 @@ function snapshotMatch() {
     score: { home: state.score.home, away: state.score.away },
     counts: clone(state.counts),
     foulsByTeam: clone(state.foulsByTeam),
+    foulsByPeriod: clone(state.foulsByPeriod),
     log: clone(state.log || []),
     cmis: clone(state.cmis || []),
     cres: clone(state.cres || []),
@@ -7362,6 +7405,7 @@ function autosaveCurrentMatch() {
     clock: { seconds: state.clock.seconds, period: state.clock.period },
     counts: clone(state.counts),
     foulsByTeam: clone(state.foulsByTeam),
+    foulsByPeriod: clone(state.foulsByPeriod),
     log: clone(state.log || []),
     cmis: clone(state.cmis || []),
     cres: clone(state.cres || []),
@@ -7430,6 +7474,7 @@ function restoreAutosaveIfPresent() {
   state.clock.interval = null;
   state.counts = snap.counts || state.counts;
   state.foulsByTeam = snap.foulsByTeam || state.foulsByTeam;
+  state.foulsByPeriod = snap.foulsByPeriod || state.foulsByPeriod || {};
   state.log = snap.log || [];
   state.cmis = snap.cmis || [];
   state.cres = snap.cres || [];

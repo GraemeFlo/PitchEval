@@ -1798,6 +1798,24 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 .foul-half-lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
 .foul-half-val { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 600; color: var(--muted); }
 
+/* ── PERSISTENT INFRINGEMENT WATCH (3+ fouls by one player) ── */
+.repeat-fouler-bar {
+  display: flex; align-items: center; justify-content: center;
+  flex-wrap: wrap; gap: 6px;
+  margin-top: 8px; padding-top: 8px;
+  border-top: 1px solid rgba(240,165,0,0.25);
+}
+.repeat-fouler-lbl {
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--gold);
+}
+.repeat-fouler-chip {
+  font-size: 10px; padding: 2px 8px; border-radius: 10px;
+  background: var(--gold-dim); color: var(--gold);
+  font-family: 'DM Mono', monospace;
+}
+.repeat-fouler-chip strong { font-weight: 700; }
+
 /* ── LIVE MATCH SYNC (this coach's other device) ── */
 .live-sync-status {
   margin-top: 8px; text-align: center;
@@ -2922,7 +2940,10 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
         <div class="foul-half-split" id="foulHalfSplit">
           <div class="foul-half-cell"><span class="foul-half-lbl">1st Half</span><span class="foul-half-val" id="foulHalf1h">0–0</span></div>
           <div class="foul-half-cell"><span class="foul-half-lbl">2nd Half</span><span class="foul-half-val" id="foulHalf2h">0–0</span></div>
+          <div class="foul-half-cell" id="foulHalfEt1Cell" style="display:none"><span class="foul-half-lbl">ET 1</span><span class="foul-half-val" id="foulHalfet1">0–0</span></div>
+          <div class="foul-half-cell" id="foulHalfEt2Cell" style="display:none"><span class="foul-half-lbl">ET 2</span><span class="foul-half-val" id="foulHalfet2">0–0</span></div>
         </div>
+        <div class="repeat-fouler-bar" id="repeatFoulerBar" style="display:none"></div>
         <div class="live-sync-status" id="liveSyncStatus" style="display:none"></div>
       </div>
 
@@ -4033,6 +4054,35 @@ function updateFoulTally() {
   const h2 = document.getElementById('foulHalf2h');
   if (h1) { const p = fbp['1h'] || { home: 0, away: 0 }; h1.textContent = `${p.home || 0}–${p.away || 0}`; }
   if (h2) { const p = fbp['2h'] || { home: 0, away: 0 }; h2.textContent = `${p.home || 0}–${p.away || 0}`; }
+
+  // Extra time fouls were being counted but never displayed. Show these two
+  // only once there's something in them, so a normal 90-minute match keeps the
+  // scoreboard uncluttered.
+  ['et1', 'et2'].forEach(per => {
+    const cell = document.getElementById('foulHalfEt' + per.slice(2) + 'Cell');
+    const val = document.getElementById('foulHalf' + per);
+    const p = fbp[per];
+    const total = p ? (p.home || 0) + (p.away || 0) : 0;
+    const inThisPeriod = state.clock.period === per;
+    if (cell) cell.style.display = (total > 0 || inThisPeriod) ? 'flex' : 'none';
+    if (val) val.textContent = `${(p && p.home) || 0}–${(p && p.away) || 0}`;
+  });
+
+  renderRepeatFoulerWarning();
+}
+
+// Three fouls by the same player is the pattern a referee coach watches for —
+// it's the threshold for a C3 "persistent infringement" caution. The Half Time
+// summary already reported this, but only after the half was over; by then the
+// moment to observe how the referee handled it has passed.
+function renderRepeatFoulerWarning() {
+  const bar = document.getElementById('repeatFoulerBar');
+  if (!bar) return;
+  const repeat = getRepeatFoulers();
+  if (!repeat.length) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+  bar.innerHTML = '<span class="repeat-fouler-lbl">⚠️ Persistent infringement</span>' +
+    repeat.map(([key, n]) => `<span class="repeat-fouler-chip">${escHtml(key)} <strong>${n}</strong></span>`).join('');
+  bar.style.display = 'flex';
 }
 
 function updateClockDisplay() {
@@ -4233,9 +4283,12 @@ function saveCMI() {
 
   state.cmis.push(cmi);
 
-  // Also add to main match log
+  // Also add to main match log, linked both ways so deleting either side can't
+  // leave the other stranded
   const logDesc = `CMI: ${meta.label}${decision ? ' [' + decision + ']' : ''}${by ? ' — ' + by : ''}${desc ? ': ' + desc.substring(0,60) + (desc.length > 60 ? '…':'') : ''}`;
-  addLogItem('⚠️', logDesc, getCurrentTime(), flagged);
+  const logId = addLogItem('⚠️', logDesc, getCurrentTime(), flagged, { kind: 'cmiref', refUid: cmi.uid });
+  const logEntry = state.log.find(e => e.id === logId);
+  cmi.logUid = logEntry ? logEntry.uid : null;
 
   renderCMILog();
   closeCMI();
@@ -4268,11 +4321,13 @@ function renderCMILog() {
 
 function deleteCMI(id) {
   const removed = (state.cmis || []).find(c => c.id === id);
-  if (removed && removed.uid) state.tombstones.cmis[removed.uid] = Date.now();
+  if (!removed) return;
+  if (removed.uid) state.tombstones.cmis[removed.uid] = Date.now();
   state.cmis = state.cmis.filter(c => c.id !== id);
+  removeLinkedLogLine(removed.logUid); // don't strand its line in the match log
   renderCMILog();
   updateCMIBadge();
-  if (removed) deleteAttachmentFiles(removed.attachments);
+  deleteAttachmentFiles(removed.attachments);
 }
 
 // ══ EVENTS ══
@@ -4744,11 +4799,47 @@ function addLogItem(icon, desc, time, flagged = false, editData = null) {
 
 function deleteLog(id) {
   const removed = state.log.find(e => e.id === id);
-  if (removed && removed.uid) state.tombstones.log[removed.uid] = Date.now();
+  if (!removed) return;
+
+  // A CMI/CRE line in the log and the record behind it are two views of one
+  // thing. Removing only the line used to leave the record stranded — still in
+  // the report, with no trace in the log it came from.
+  const refKind = removed.edit && (removed.edit.kind === 'cmiref' ? 'cmis' : removed.edit.kind === 'creref' ? 'cres' : null);
+  if (refKind) {
+    const label = refKind === 'cmis' ? 'Critical Match Incident' : 'Critical Referee Error';
+    if (!confirm(`This also deletes the linked ${label} and its attachments.\n\nDelete both?`)) return;
+    removeLinkedRecord(refKind, removed.edit.refUid);
+  }
+
+  state.tombstones.log[removed.uid] = Date.now();
   state.log = state.log.filter(e => e.id !== id);
   renderLog();
   recomputeDerivedState();
-  if (removed && removed.edit) deleteAttachmentFiles(removed.edit.attachments);
+  if (removed.edit) deleteAttachmentFiles(removed.edit.attachments);
+}
+
+// Drop a CMI/CRE record without routing back through deleteCMI/deleteCRE —
+// those delete the log line, which is what called us
+function removeLinkedRecord(key, refUid) {
+  if (!refUid) return;
+  const rec = (state[key] || []).find(c => c.uid === refUid);
+  if (!rec) return;
+  state.tombstones[key][rec.uid] = Date.now();
+  state[key] = state[key].filter(c => c.uid !== refUid);
+  if (key === 'cmis') { renderCMILog(); updateCMIBadge(); } else { renderCRELog(); updateCREBadge(); }
+  deleteAttachmentFiles(rec.attachments);
+}
+
+// ...and the mirror image: drop the log line for a record being deleted,
+// without routing back through deleteLog
+function removeLinkedLogLine(logUid) {
+  if (!logUid) return;
+  const entry = state.log.find(e => e.uid === logUid);
+  if (!entry) return;
+  state.tombstones.log[entry.uid] = Date.now();
+  state.log = state.log.filter(e => e.uid !== logUid);
+  renderLog();
+  recomputeDerivedState();
 }
 
 // ══ ATTACHMENTS (photo / voice note) ══
@@ -6731,15 +6822,29 @@ function mergeLibraries(local, cloud) {
     if (!lm) { byId.set(cm.id, cm); return; }
     if ((cm.savedAt || 0) <= (lm.savedAt || 0)) return; // local is same-or-newer, keep it
     const merged = JSON.parse(JSON.stringify(cm));
+    // Match on uid first — it's stable across devices, whereas the numeric id
+    // is only a local handle and gets renumbered when two devices' entries
+    // collide. Fall back to id for entries saved before uids existed.
+    const findCounterpart = (list, item) => {
+      if (item.uid) {
+        const byUid = (list || []).find(x => x.uid === item.uid);
+        if (byUid) return byUid;
+        // A uid'd entry with no uid match has no counterpart; matching it on id
+        // would risk grafting another entry's photos onto it
+        return (list || []).find(x => !x.uid && x.id === item.id);
+      }
+      return (list || []).find(x => x.id === item.id);
+    };
+
     merged.log = (merged.log || []).map(entry => {
-      const localEntry = (lm.log || []).find(le => le.id === entry.id);
+      const localEntry = findCounterpart(lm.log, entry);
       const atts = localEntry && localEntry.edit && localEntry.edit.attachments;
       if (atts && atts.length) entry.edit = Object.assign({}, entry.edit, { attachments: atts });
       return entry;
     });
     ['cmis', 'cres'].forEach(key => {
       merged[key] = (merged[key] || []).map(c => {
-        const lc = (lm[key] || []).find(x => x.id === c.id);
+        const lc = findCounterpart(lm[key], c);
         if (lc && lc.attachments && lc.attachments.length) c.attachments = lc.attachments;
         return c;
       });
@@ -8597,7 +8702,9 @@ function saveCRE() {
   state.cres.push(cre);
 
   const logDesc = `ERROR: ${meta.label}${official ? ' — ' + official : ''}${extras[0] ? ' [' + extras[0] + ']' : ''}${desc ? ': ' + desc.substring(0,60) + (desc.length > 60 ? '…':'') : ''}`;
-  addLogItem('🚨', logDesc, getCurrentTime(), flagged);
+  const logId = addLogItem('🚨', logDesc, getCurrentTime(), flagged, { kind: 'creref', refUid: cre.uid });
+  const logEntry = state.log.find(e => e.id === logId);
+  cre.logUid = logEntry ? logEntry.uid : null;
 
   renderCRELog();
   closeCRE();
@@ -8605,11 +8712,13 @@ function saveCRE() {
 
 function deleteCRE(id) {
   const removed = (state.cres || []).find(c => c.id === id);
-  if (removed && removed.uid) state.tombstones.cres[removed.uid] = Date.now();
+  if (!removed) return;
+  if (removed.uid) state.tombstones.cres[removed.uid] = Date.now();
   state.cres = state.cres.filter(c => c.id !== id);
+  removeLinkedLogLine(removed.logUid); // don't strand its line in the match log
   renderCRELog();
   updateCREBadge();
-  if (removed) deleteAttachmentFiles(removed.attachments);
+  deleteAttachmentFiles(removed.attachments);
 }
 
 function renderCRELog() {

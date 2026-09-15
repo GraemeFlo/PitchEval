@@ -1825,6 +1825,20 @@ html.large-text .clock-period { white-space: nowrap; }
 html.large-text .tabs { gap: 1px; padding: 2px; }
 html.large-text .tab { font-size: 10px; letter-spacing: 0; padding: 7px 2px; }
 
+/* ── PRIOR FEEDBACK CARD ── */
+.prior-feedback {
+  background: var(--gold-dim);
+  border: 1px solid var(--gold);
+  border-radius: var(--radius);
+  padding: 11px 14px;
+  margin-bottom: 12px;
+}
+.prior-feedback-head { font-size: 12px; font-weight: 700; color: var(--gold); }
+/* --muted lands at 4.45:1 on the accent tint — just under AA */
+.prior-feedback-meta { font-size: 10px; color: var(--text); opacity: 0.75; margin-top: 1px; }
+.prior-feedback-list { margin: 6px 0 0; padding-left: 18px; }
+.prior-feedback-list li { font-size: 12px; color: var(--text); line-height: 1.5; margin-bottom: 2px; }
+
 /* ── TAP TARGETS ──
    Apple's minimum is 44x44pt and several controls sat under it: the tabs at
    32, Add Match Event at 35, the period buttons at 38, the clock buttons at
@@ -3971,6 +3985,9 @@ function confirmReset() {
   state.pso = { home: [], away: [] };
   // A new match is a new session — old tombstones have nothing left to suppress
   state.tombstones = { log: {}, cmis: {}, cres: {} };
+  state._lastFeedback = null;
+  state._feedbackEnglish = null;
+  state._feedbackLangLabel = null;
   // ...and the half-time baselines belong to the match that just ended. Left in
   // place, the next match's Full Time summary subtracts THIS match's numbers and
   // reports negative goals and fouls.
@@ -5487,12 +5504,48 @@ const SCORE_BANDS = (() => {
   return bands;
 })();
 
+// ══ COACHING LOOP ══
+// Whether a referee acted on last time's feedback is the central question in a
+// coaching relationship, and every match used to be an island. Officials are
+// already matched by name across the Library (the trends view does it), so the
+// previous report for this person can be surfaced while they are being rated.
+function previousFeedbackFor(name, excludeSessionId) {
+  if (!name || !name.trim()) return null;
+  const target = name.trim().toLowerCase();
+  const prior = getLibrary()
+    .filter(m => Array.isArray(m.feedback) && m.feedback.length)
+    .filter(m => excludeSessionId == null || String(m.id) !== String(excludeSessionId))
+    .sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+  for (const m of prior) {
+    const entry = (m.feedback || []).find(f => (f.name || '').trim().toLowerCase() === target);
+    if (entry && ((entry.development || []).length || entry.narrative)) {
+      return {
+        development: entry.development || [],
+        date: m.match?.date || (m.savedAt ? new Date(m.savedAt).toISOString().slice(0, 10) : ''),
+        matchLabel: `${m.match?.home || 'Home'} vs ${m.match?.away || 'Away'}`,
+      };
+    }
+  }
+  return null;
+}
+
+function previousFeedbackCardHtml(idx) {
+  const name = [state.match.r, state.match.ar1, state.match.ar2, state.match.fourth][idx];
+  const prev = previousFeedbackFor(name, state._librarySessionId);
+  if (!prev || !prev.development.length) return '';
+  return `<div class="prior-feedback">
+    <div class="prior-feedback-head">↩︎ Previously flagged for ${escHtml(name)}</div>
+    <div class="prior-feedback-meta">${escHtml(prev.matchLabel)}${prev.date ? ' · ' + escHtml(prev.date) : ''}</div>
+    <ul class="prior-feedback-list">${prev.development.map(d => `<li>${escHtml(d)}</li>`).join('')}</ul>
+  </div>`;
+}
+
 function buildRatingsPanel(idx) {
   const off = state.officials[idx];
   const roleKey = ['Referee','AR1','AR2','4th'][idx];
   const criteria = CRITERIA[roleKey] || CRITERIA['Referee'];
 
-  let html = `<div class="card">`;
+  let html = previousFeedbackCardHtml(idx) + `<div class="card">`;
 
   criteria.forEach(crit => {
     // Default every unset criterion to 8.3 rather than leaving it blank
@@ -7975,6 +8028,10 @@ function snapshotMatch() {
     cres: clone(state.cres || []),
     pso: clone(state.pso || { home: [], away: [] }),
     officials: clone(state.officials || []),
+    // The generated (and possibly coach-edited) narrative is the thing actually
+    // handed to the referee. It used to live only in memory, so it was lost on
+    // reset or relaunch and absent when a saved match was reopened.
+    feedback: clone(state._lastFeedback),
   };
 }
 
@@ -8047,6 +8104,19 @@ function viewLibraryMatch(id) {
   h += `<div class="field-label">Officials</div>
     <div style="font-size:13px;margin:4px 0 12px;">Referee: ${escAttr(off.r || '—')}<br>AR1: ${escAttr(off.ar1 || '—')} · AR2: ${escAttr(off.ar2 || '—')}${off.fourth ? '<br>4th: ' + escAttr(off.fourth) : ''}</div>`;
   const logs = m.log || [];
+  // The coaching report, if one was generated for this match
+  if (Array.isArray(m.feedback) && m.feedback.length) {
+    h += `<div class="field-label">Coaching Report</div><div style="margin:4px 0 12px;">`;
+    m.feedback.forEach(o => {
+      h += `<div style="margin-bottom:10px;">
+        <div style="font-size:13px;font-weight:700;">${escAttr(o.role || '')}${o.name ? ' — ' + escAttr(o.name) : ''}</div>
+        ${o.narrative ? `<div style="font-size:12px;line-height:1.5;margin-top:2px;">${escAttr(o.narrative)}</div>` : ''}
+        ${(o.development || []).length ? `<div style="font-size:12px;margin-top:4px;"><strong>Development:</strong> ${(o.development || []).map(escAttr).join('; ')}</div>` : ''}
+      </div>`;
+    });
+    h += `</div>`;
+  }
+
   h += `<div class="field-label">Event Log (${logs.length})</div>
     <div style="font-size:12px;font-family:monospace;max-height:220px;overflow:auto;margin-top:4px;line-height:1.5;">${logs.length ? logs.map(e => `${escAttr((e.time || '') + ' ' + (e.desc || ''))}`).join('<br>') : '(no events)'}</div>`;
   document.getElementById('libDetailBody').innerHTML = h;
@@ -8092,12 +8162,22 @@ function getOfficialTrends() {
       const score = computeOfficialAvgFromSnapshot(snap, idx);
       if (score == null) return;
       if (!map[name]) map[name] = [];
+      const roleKey = ['Referee', 'AR1', 'AR2', '4th'][idx];
+      const offRatings = (snap.officials && snap.officials[idx] && snap.officials[idx].ratings) || {};
+      const perCriterion = {};
+      (CRITERIA[roleKey] || CRITERIA['Referee']).forEach(c => {
+        const n = ratingToNumber(offRatings[c]);
+        if (n !== null) perCriterion[c] = n;
+      });
       map[name].push({
         date: snap.match.date || new Date(snap.savedAt).toISOString().slice(0, 10),
         savedAt: snap.savedAt,
         score,
-        role: ['Referee', 'AR1', 'AR2', '4th'][idx],
+        role: roleKey,
         matchLabel: `${snap.match.home || 'Home'} vs ${snap.match.away || 'Away'}`,
+        // The overall average hides which areas are actually moving; these are
+        // already in the snapshot, they were just never read.
+        criteria: perCriterion,
       });
     });
   });
@@ -8156,7 +8236,8 @@ function renderTrendChart() {
   const deltaLabel = arr.length > 1
     ? `${delta >= 0 ? '▲ +' : '▼ '}${delta.toFixed(1)} since first rated match`
     : 'Only one rated match so far';
-  const deltaColor = delta > 0.05 ? 'var(--green)' : delta < -0.05 ? 'var(--red)' : 'var(--muted)';
+  // --muted here compounds with .overall-sub's opacity and lands under AA
+  const deltaColor = delta > 0.05 ? 'var(--green)' : delta < -0.05 ? 'var(--red)' : 'var(--text)';
 
   body.innerHTML = `
     <div class="overall-top" style="margin-bottom:4px;">
@@ -8165,6 +8246,7 @@ function renderTrendChart() {
     </div>
     <div class="overall-sub" style="color:${deltaColor};">${deltaLabel}</div>
     <div style="margin:14px 0;">${buildSparklineSVG(arr)}</div>
+    ${buildCriterionTrendHtml(arr)}
     <div class="section-label" style="margin-top:6px;">Match History</div>
     <div class="card">
       ${arr.slice().reverse().map(p => `
@@ -8172,6 +8254,39 @@ function renderTrendChart() {
           <span class="finalize-stat-label">${escAttr(p.date)} · ${escAttr(p.role)} · ${escAttr(p.matchLabel)}</span>
           <span class="finalize-stat-val">${p.score.toFixed(1)}</span>
         </div>`).join('')}
+    </div>`;
+}
+
+// "Match Control 7.8 → 8.4, Positioning flat at 7.5" is a coaching
+// conversation; a single average drifting upward is not. Only criteria rated
+// in at least two matches can show movement, so the rest are left out.
+function buildCriterionTrendHtml(arr) {
+  if (!arr || arr.length < 2) return '';
+  const names = new Set();
+  arr.forEach(p => Object.keys(p.criteria || {}).forEach(c => names.add(c)));
+  const rows = [];
+  names.forEach(c => {
+    const pts = arr.filter(p => p.criteria && p.criteria[c] != null);
+    if (pts.length < 2) return;
+    const first = pts[0].criteria[c], last = pts[pts.length - 1].criteria[c];
+    rows.push({ c, first, last, delta: last - first, n: pts.length });
+  });
+  if (!rows.length) return '';
+  rows.sort((a, b) => a.delta - b.delta); // biggest declines first — the ones to talk about
+  return `<div class="section-label" style="margin-top:6px;">By Criterion</div>
+    <div class="card">
+      ${rows.map(r => {
+        const flat = Math.abs(r.delta) < 0.05;
+        const colour = flat ? 'var(--muted)' : r.delta > 0 ? 'var(--green)' : 'var(--red)';
+        const arrow = flat ? '–' : r.delta > 0 ? '▲' : '▼';
+        const label = flat
+          ? `flat at ${r.last.toFixed(1)}`
+          : `${r.first.toFixed(1)} → ${r.last.toFixed(1)} (${r.delta > 0 ? '+' : ''}${r.delta.toFixed(1)})`;
+        return `<div class="finalize-stat-row">
+          <span class="finalize-stat-label">${escAttr(r.c)}</span>
+          <span class="finalize-stat-val" style="color:${colour};">${arrow} ${label}</span>
+        </div>`;
+      }).join('')}
     </div>`;
 }
 
@@ -8616,6 +8731,7 @@ function autosaveCurrentMatch() {
     finalized: !!state.finalized,
     librarySessionId: state._librarySessionId || null,
     tombstones: clone(state.tombstones),
+    feedback: clone(state._lastFeedback),
   };
   try { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(snapshot)); } catch (e) {}
 }
@@ -8683,6 +8799,7 @@ function restoreAutosaveIfPresent() {
   state.finalized = !!snap.finalized;
   state._librarySessionId = snap.librarySessionId || null;
   state.tombstones = Object.assign({ log: {}, cmis: {}, cres: {} }, snap.tombstones || {});
+  state._lastFeedback = snap.feedback || null;
 
   hydrateMatchForm();
 
@@ -8703,6 +8820,11 @@ function restoreAutosaveIfPresent() {
   buildRatingsPanel(0);
   updateHeader();
   updateOfficialTabs();
+  // Repaint the Feedback tab if a report had already been generated — including
+  // any wording the coach edited by hand
+  if (state._lastFeedback && state._lastFeedback.length) {
+    try { renderFeedback(state._lastFeedback); } catch (e) {}
+  }
 }
 
 // ══ QUICK START CHECKLIST ══

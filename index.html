@@ -3960,7 +3960,9 @@ function confirmReset() {
     ...(state.cmis || []).flatMap(c => c.attachments || []),
     ...(state.cres || []).flatMap(c => c.attachments || []),
   ];
-  if (orphanedAttachments.length) deleteAttachmentFiles(orphanedAttachments);
+  // Reset runs right after Finalize, and Finalize has just saved this match —
+  // videos it still references must survive being cleared from the Live tab.
+  if (orphanedAttachments.length) deleteAttachmentsIfUnreferenced(orphanedAttachments, { includeLive: false });
 
   // Reset log, CMIs, CREs, PSO
   state.log = [];
@@ -4932,7 +4934,7 @@ function commitPendingUndo() {
   clearTimeout(_undo.timer);
   const atts = _undo.attachments;
   _undo = null;
-  if (atts && atts.length) deleteAttachmentFiles(atts);
+  if (atts && atts.length) deleteAttachmentsIfUnreferenced(atts);
 }
 
 function performUndo() {
@@ -5165,6 +5167,37 @@ async function deleteAttachmentFiles(attachments) {
       try { await fs.deleteFile({ path: a.filename, directory: 'DATA' }); } catch (e) {}
     }
   }
+}
+
+// Saving a match to the Library deep-clones the log, attachments included, so a
+// saved match and the live one can reference the SAME file on disk. Deleting
+// either side's entry must not pull the file out from under the other.
+function collectAttachmentIds(src, into) {
+  if (!src) return into;
+  (src.log || []).forEach(e => ((e.edit && e.edit.attachments) || []).forEach(a => a && a.id && into.add(a.id)));
+  (src.cmis || []).forEach(c => (c.attachments || []).forEach(a => a && a.id && into.add(a.id)));
+  (src.cres || []).forEach(c => (c.attachments || []).forEach(a => a && a.id && into.add(a.id)));
+  return into;
+}
+
+// Every attachment id still referenced by something we intend to keep
+function referencedAttachmentIds({ includeLive = true, excludeLibraryId = null } = {}) {
+  const ids = new Set();
+  if (includeLive) collectAttachmentIds(state, ids);
+  try {
+    getLibrary().forEach(m => {
+      if (excludeLibraryId != null && String(m.id) === String(excludeLibraryId)) return;
+      collectAttachmentIds(m, ids);
+    });
+  } catch (e) {}
+  return ids;
+}
+
+// Delete only the files nothing else points at any more
+function deleteAttachmentsIfUnreferenced(candidates, opts) {
+  const keep = referencedAttachmentIds(opts);
+  const orphans = (candidates || []).filter(a => a && a.id && !keep.has(a.id));
+  if (orphans.length) deleteAttachmentFiles(orphans);
 }
 
 async function toggleVoiceRecording() {
@@ -5655,6 +5688,7 @@ Date: ${m.date || 'Unknown'} | Kickoff: ${m.kickoff || 'Unknown'} | Venue: ${[m.
 Weather: ${m.weather || 'Unknown'} | Surface: ${m.surface || 'Unknown'}
 Final Score: ${state.score.home} – ${state.score.away}
 Stats: Fouls: ${state.counts.foul} | Yellows: ${state.counts.yellow} | Reds: ${state.counts.red} | Offsides: ${state.counts.offside} | Goals: ${state.counts.goal} | PKs: ${state.counts.pk}
+${foulBreakdownText(state)}${repeatFoulersText(state) ? '\n' + repeatFoulersText(state) : ''}
 
 MATCH LOG:
 ${logText}
@@ -6542,7 +6576,11 @@ function buildEvalReportText() {
   text += `AR1: ${m.ar1}${m.ar1_cert ? ' (' + m.ar1_cert + ')' : ''}\n`;
   text += `AR2: ${m.ar2}${m.ar2_cert ? ' (' + m.ar2_cert + ')' : ''}\n`;
   if (m.fourth) text += `4th Official: ${m.fourth}${m.fourth_cert ? ' (' + m.fourth_cert + ')' : ''}\n`;
-  text += `\nSTATISTICS: Fouls ${state.counts.foul} | Yellows ${state.counts.yellow} | Reds ${state.counts.red} | Offsides ${state.counts.offside} | Goals ${state.counts.goal} | PKs ${state.counts.pk}\n\n`;
+  text += `\nSTATISTICS: Fouls ${state.counts.foul} | Yellows ${state.counts.yellow} | Reds ${state.counts.red} | Offsides ${state.counts.offside} | Goals ${state.counts.goal} | PKs ${state.counts.pk}\n`;
+  text += `${foulBreakdownText(state)}\n`;
+  const _rf = repeatFoulersText(state);
+  if (_rf) text += `${_rf}\n`;
+  text += `\n`;
 
   officials.forEach(off => {
     text += `${'─'.repeat(50)}\n`;
@@ -6684,6 +6722,22 @@ function printReport() {
   <div class="stat"><strong>${state.counts.pk}</strong> PKs</div>
 </div>
 
+<div style="font-size:10pt;margin:-6px 0 16px;line-height:1.7;">
+  <div><strong>Fouls by team:</strong> ${m.home} ${state.foulsByTeam?.home || 0} — ${state.foulsByTeam?.away || 0} ${m.away}</div>
+  ${(() => {
+    const per = state.foulsByPeriod || {};
+    const labels = { '1h':'1st Half', '2h':'2nd Half', et1:'ET 1st', et2:'ET 2nd' };
+    const parts = Object.keys(labels)
+      .filter(k => per[k] && ((per[k].home||0)+(per[k].away||0)) > 0)
+      .map(k => `${labels[k]} ${per[k].home||0}–${per[k].away||0}`);
+    return parts.length ? `<div><strong>Fouls by period:</strong> ${parts.join(' &nbsp;|&nbsp; ')}</div>` : '';
+  })()}
+  ${(() => {
+    const rf = getRepeatFoulers();
+    return rf.length ? `<div><strong>Persistent infringement (3+ fouls):</strong> ${rf.map(([k,n])=>`${k} — ${n}`).join(', ')}</div>` : '';
+  })()}
+</div>
+
 ${state.log.filter(e=>e.flagged).length > 0 ? `
 <div class="section-head" style="color:#f85149;">🚩 Flagged for Discussion</div>
 <div style="background:#fff5f5;border:1px solid #f5b8b8;border-radius:6px;padding:10px 14px;margin-bottom:16px;">
@@ -6727,6 +6781,45 @@ ${officials.map(off => {
 // Tally fouls per player (only fouls where a player number was entered) and
 // return those with 3+ fouls, sorted highest first. Shared by the Finalize
 // overview and the Half/Full Time summaries.
+
+// A flat foul total says little about match control. Which side committed them,
+// how they were distributed across the halves, and whether one player kept
+// offending are the things a referee coach actually discusses — the app has all
+// three and, until now, reported none of them.
+function foulBreakdownText(src) {
+  const m = src.match || {};
+  const byTeam = src.foulsByTeam || { home: 0, away: 0 };
+  const home = m.home || 'Home', away = m.away || 'Away';
+  let out = `Fouls by team: ${home} ${byTeam.home || 0} — ${byTeam.away || 0} ${away}`;
+  const per = src.foulsByPeriod || {};
+  const labels = { '1h': '1st Half', '2h': '2nd Half', et1: 'ET 1st', et2: 'ET 2nd' };
+  const parts = Object.keys(labels)
+    .filter(k => per[k] && ((per[k].home || 0) + (per[k].away || 0)) > 0)
+    .map(k => `${labels[k]} ${per[k].home || 0}–${per[k].away || 0}`);
+  if (parts.length) out += `\nFouls by period: ${parts.join('  |  ')}`;
+  return out;
+}
+
+function repeatFoulersText(src) {
+  const list = (src === state) ? getRepeatFoulers() : repeatFoulersFor(src);
+  if (!list.length) return '';
+  return `Persistent infringement (3+ fouls): ${list.map(([k, n]) => `${k} — ${n}`).join(', ')}`;
+}
+
+// getRepeatFoulers() reads live state; saved matches need the same sum
+function repeatFoulersFor(src) {
+  const m = src.match || {};
+  const tally = {};
+  (src.log || []).forEach(e => {
+    const d = e.edit;
+    if (!d || d.kind !== 'event' || d.type !== 'foul' || !d.player) return;
+    const team = d.team === 'home' ? (m.home || 'Home') : d.team === 'away' ? (m.away || 'Away') : '';
+    const key = (team ? team + ' ' : '') + '#' + d.player;
+    tally[key] = (tally[key] || 0) + 1;
+  });
+  return Object.entries(tally).filter(([, n]) => n >= 3).sort((a, b) => b[1] - a[1]);
+}
+
 function getRepeatFoulers() {
   const m = state.match;
   const playerFouls = {};
@@ -7929,6 +8022,14 @@ function deleteLibraryMatch(id) {
   if (!confirm(`Delete "${name}" permanently?\n\nIts event log, incidents and ratings go with it. This cannot be undone.`)) return;
   tombstoneLibraryMatch(id);
   setLibrary(getLibrary().filter(x => x.id !== id));
+  // Its video files were never cleaned up — up to 60MB each, orphaned on disk
+  // for good. Remove the ones no other match (or the live one) still needs.
+  const files = [
+    ...(m.log || []).flatMap(e => (e.edit && e.edit.attachments) || []),
+    ...(m.cmis || []).flatMap(c => c.attachments || []),
+    ...(m.cres || []).flatMap(c => c.attachments || []),
+  ];
+  deleteAttachmentsIfUnreferenced(files, { excludeLibraryId: id });
   renderLibrary();
   toast('Match deleted');
 }
@@ -8120,6 +8221,9 @@ function buildMatchLogText(src) {
   if (_m.evaluator) t += `Evaluator: ${_m.evaluator}${_m.eval_role ? ' · ' + _m.eval_role : ''}\n`;
 
   t += `\nSTATISTICS: Fouls ${counts.foul || 0} | Yellows ${counts.yellow || 0} | Reds ${counts.red || 0} | Offsides ${counts.offside || 0} | Goals ${counts.goal || 0} | PKs ${counts.pk || 0}\n`;
+  t += `${foulBreakdownText(src)}\n`;
+  const _rfl = repeatFoulersText(src);
+  if (_rfl) t += `${_rfl}\n`;
   t += `Fouls by Team: ${_m.home || 'Home'} ${fbt.home || 0} — ${fbt.away || 0} ${_m.away || 'Away'}\n`;
 
   t += `\nEVENT LOG\n${'─'.repeat(40)}\n`;

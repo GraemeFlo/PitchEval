@@ -33,106 +33,12 @@ button {
   appearance: none;
 }
 
-:root {
-  --bg: #2c3138;
-  --surface: #353b44;
-  --surface2: #404751;
-  --border: #4f5763;
-  --gold: #7fb2f5;
-  --gold-dim: rgba(91,155,240,0.15);
-  --green: #3fb950;
-  --green-dim: rgba(63,185,80,0.15);
-  --red: #f85149;
-  --red-dim: rgba(248,81,73,0.15);
-  --blue: #58a6ff;
-  --blue-dim: rgba(88,166,255,0.12);
-  --yellow: #e3b341;
-  --text: #eceff4;
-  --muted: #aeb7c4;
-  --muted2: #78828f;
-  --radius: 12px;
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-/* ── DARK MODE (explicit attribute) ── */
-[data-theme="dark"] {
-  --bg: #2c3138;
-  --surface: #353b44;
-  --surface2: #404751;
-  --border: #4f5763;
-  --gold: #7fb2f5;
-  --gold-dim: rgba(91,155,240,0.15);
-  --green: #3fb950;
-  --green-dim: rgba(63,185,80,0.15);
-  --red: #f85149;
-  --red-dim: rgba(248,81,73,0.15);
-  --blue: #58a6ff;
-  --blue-dim: rgba(88,166,255,0.12);
-  --yellow: #e3b341;
-  --text: #eceff4;
-  --muted: #aeb7c4;
-  --muted2: #78828f;
-}
-
-/* ── LIGHT MODE VARIABLES ── */
-[data-theme="light"] {
-  --bg: #e6e9ee;
-  --surface: #f3f4f7;
-  --surface2: #dde1e8;
-  --border: #c5ccd8;
-  --gold: #1a5fb4;
-  --gold-dim: rgba(26,95,180,0.12);
-  --green: #1a7f37;
-  --green-dim: rgba(26,127,55,0.12);
-  --red: #cf222e;
-  --red-dim: rgba(207,34,46,0.1);
-  --blue: #0969da;
-  --blue-dim: rgba(9,105,218,0.1);
-  --yellow: #9a6700;
-  --text: #1a2035;
-  --muted: #57606a;
-  --muted2: #afb8c1;
-}
-
-/* ── AUTO MODE — follows system preference ── */
-[data-theme="auto"] {
-  --bg: #e6e9ee;
-  --surface: #f3f4f7;
-  --surface2: #dde1e8;
-  --border: #c5ccd8;
-  --gold: #1a5fb4;
-  --gold-dim: rgba(26,95,180,0.12);
-  --green: #1a7f37;
-  --green-dim: rgba(26,127,55,0.12);
-  --red: #cf222e;
-  --red-dim: rgba(207,34,46,0.1);
-  --blue: #0969da;
-  --blue-dim: rgba(9,105,218,0.1);
-  --yellow: #9a6700;
-  --text: #1a2035;
-  --muted: #57606a;
-  --muted2: #afb8c1;
-}
-@media (prefers-color-scheme: dark) {
-  [data-theme="auto"] {
-    --bg: #2c3138;
-    --surface: #353b44;
-    --surface2: #404751;
-    --border: #4f5763;
-    --gold: #7fb2f5;
-    --gold-dim: rgba(91,155,240,0.15);
-    --green: #3fb950;
-    --green-dim: rgba(63,185,80,0.15);
-    --red: #f85149;
-    --red-dim: rgba(248,81,73,0.15);
-    --blue: #58a6ff;
-    --blue-dim: rgba(88,166,255,0.12);
-    --yellow: #e3b341;
-    --text: #eceff4;
-    --muted: #aeb7c4;
-    --muted2: #78828f;
-  }
-}
+/* The palette lives in one place, further down ("Soft slate palette"). A
+   second, older copy used to sit here and win nothing — but it spelled the
+   same colours with different hex, so edits applied to one set silently
+   missed the other. That is exactly how auto mode ended up on stale hues.
+   Only --safe-bottom, which nothing else defined, is kept here. */
+:root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
 
 /* ── THEME TOGGLE BUTTON ── */
 .theme-btn {
@@ -1583,6 +1489,7 @@ textarea { resize: none; line-height: 1.5; min-height: 60px; }
   --red-dim: rgba(255,92,92,0.13);
   --blue: #8cc0ff;
   --blue-dim: rgba(91,164,255,0.12);
+  --yellow: #e3b341;
   --text: #eceff4;
   --muted: #aeb7c4;
   --muted2: #78828f;

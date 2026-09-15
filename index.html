@@ -8151,6 +8151,140 @@ function computeOfficialAvgFromSnapshot(snap, idx) {
   return nums.reduce((a, b) => a + b, 0) / nums.length;
 }
 
+// ══ OFFICIAL DEVELOPMENT HISTORY ══
+// Per-criterion movement and the feedback loop existed only on screen. What a
+// coach hands a referee at a season review — or an assignor weighing a
+// promotion — is exactly that history, so it needs to leave the app.
+function collectOfficialHistory(name) {
+  const target = (name || '').trim().toLowerCase();
+  if (!target) return [];
+  const rows = [];
+  getLibrary().forEach(snap => {
+    const m = snap.match || {};
+    [m.r, m.ar1, m.ar2, m.fourth].forEach((n, idx) => {
+      if (!n || n.trim().toLowerCase() !== target) return;
+      const fb = (snap.feedback || []).find(f => (f.name || '').trim().toLowerCase() === target);
+      rows.push({
+        date: m.date || (snap.savedAt ? new Date(snap.savedAt).toISOString().slice(0, 10) : ''),
+        savedAt: snap.savedAt || 0,
+        matchLabel: `${m.home || 'Home'} vs ${m.away || 'Away'}`,
+        comp: m.comp || '',
+        role: ['Referee', 'AR1', 'AR2', '4th'][idx],
+        score: computeOfficialAvgFromSnapshot(snap, idx),
+        ratings: (snap.officials && snap.officials[idx] && snap.officials[idx].ratings) || {},
+        development: (fb && fb.development) || [],
+        narrative: (fb && fb.narrative) || '',
+      });
+    });
+  });
+  return rows.sort((a, b) => a.savedAt - b.savedAt);
+}
+
+// A point raised once is an observation; the same point raised across several
+// matches is the thing the review is actually about.
+function recurringDevelopmentThemes(rows) {
+  const seen = {};
+  rows.forEach(r => {
+    const unique = new Set((r.development || []).map(d => d.trim().toLowerCase()).filter(Boolean));
+    unique.forEach(k => {
+      if (!seen[k]) seen[k] = { label: (r.development.find(d => d.trim().toLowerCase() === k) || k).trim(), matches: [] };
+      seen[k].matches.push(r.date || r.matchLabel);
+    });
+  });
+  return Object.values(seen).filter(t => t.matches.length > 1).sort((a, b) => b.matches.length - a.matches.length);
+}
+
+// Criteria are role-specific: a Referee's Positioning and an AR's Positioning
+// are different skills, so movement is only meaningful within one role.
+function criterionMovementByRole(points) {
+  const byRole = {};
+  (points || []).forEach(p => { (byRole[p.role] = byRole[p.role] || []).push(p); });
+  const out = [];
+  Object.keys(byRole).forEach(role => {
+    const pts = byRole[role];
+    if (pts.length < 2) return;
+    const names = new Set();
+    pts.forEach(p => Object.keys(p.criteria || {}).forEach(c => names.add(c)));
+    const rows = [];
+    names.forEach(c => {
+      const vals = pts.filter(p => p.criteria && p.criteria[c] != null).map(p => p.criteria[c]);
+      if (vals.length < 2) return;
+      rows.push({ c, first: vals[0], last: vals[vals.length - 1],
+                  delta: vals[vals.length - 1] - vals[0], n: vals.length });
+    });
+    if (rows.length) { rows.sort((a, b) => a.delta - b.delta); out.push({ role, rows, matches: pts.length }); }
+  });
+  return out;
+}
+
+function buildOfficialHistoryText(name) {
+  const rows = collectOfficialHistory(name);
+  if (!rows.length) return '';
+  const coach = getCoachBranding();
+  const scored = rows.filter(r => r.score != null);
+  const avg = scored.length ? scored.reduce((a, r) => a + r.score, 0) / scored.length : null;
+  const line = ch => ch.repeat(52) + '\n';
+
+  let t = '';
+  t += line('=');
+  t += `DEVELOPMENT HISTORY — ${name}\n`;
+  t += line('=');
+  t += `Matches evaluated: ${rows.length}`;
+  if (rows[0].date || rows[rows.length - 1].date) t += `   (${rows[0].date || '?'} to ${rows[rows.length - 1].date || '?'})`;
+  t += `\n`;
+  if (avg != null) t += `Career average: ${avg.toFixed(1)}`;
+  if (scored.length > 1) {
+    const d = scored[scored.length - 1].score - scored[0].score;
+    t += `   ${d >= 0 ? '+' : ''}${d.toFixed(1)} since first rated match`;
+  }
+  t += `\n`;
+  if (coach.name) t += `Referee Coach: ${[coach.name, coach.role, coach.grade].filter(Boolean).join(' · ')}\n`;
+
+  const points = rows.map(r => {
+    const criteria = {};
+    Object.keys(r.ratings || {}).forEach(c => {
+      const n = ratingToNumber(r.ratings[c]);
+      if (n !== null) criteria[c] = n;
+    });
+    return { role: r.role, criteria };
+  });
+  criterionMovementByRole(points).forEach(block => {
+    t += `\n` + line('-') + `BY CRITERION — as ${block.role} (${block.matches} matches)\n` + line('-');
+    block.rows.forEach(mv => {
+      const flat = Math.abs(mv.delta) < 0.05;
+      t += `${mv.c.padEnd(24)} ${flat ? `flat at ${mv.last.toFixed(1)}`
+        : `${mv.first.toFixed(1)} -> ${mv.last.toFixed(1)}  (${mv.delta > 0 ? '+' : ''}${mv.delta.toFixed(1)})`}`;
+      t += `   [${mv.n} matches]\n`;
+    });
+  });
+
+  const themes = recurringDevelopmentThemes(rows);
+  if (themes.length) {
+    t += `\n` + line('-') + `RECURRING DEVELOPMENT THEMES\n` + line('-');
+    themes.forEach(th => { t += `• ${th.label}  — raised in ${th.matches.length} matches (${th.matches.join(', ')})\n`; });
+  }
+
+  t += `\n` + line('-') + `MATCH BY MATCH\n` + line('-');
+  rows.slice().reverse().forEach(r => {
+    t += `${r.date || '—'}  ${r.role.padEnd(8)} ${r.matchLabel}`;
+    if (r.comp) t += `  (${r.comp})`;
+    t += r.score != null ? `   ${r.score.toFixed(1)}\n` : `   —\n`;
+    if (r.development.length) r.development.forEach(d => { t += `      → ${d}\n`; });
+  });
+
+  t += `\nGenerated ${new Date().toLocaleString()} · PitchEval\n`;
+  return t;
+}
+
+function exportOfficialHistory() {
+  const sel = document.getElementById('trendsOfficialSelect');
+  const name = sel && sel.value;
+  const text = buildOfficialHistoryText(name);
+  if (!text) { toast('No saved matches for this official yet'); return; }
+  const slug = String(name).replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  downloadTextFile(`development_history_${slug}.txt`, text);
+}
+
 // Builds { officialName: [{ date, savedAt, score, role, matchLabel }, ...] } across every saved match
 function getOfficialTrends() {
   const lib = getLibrary();
@@ -8211,11 +8345,14 @@ function openTrends() {
   state._trendsData = trends;
   const names = Object.keys(trends).sort();
   const sel = document.getElementById('trendsOfficialSelect');
+  const exportBtn = document.getElementById('trendsExportBtn');
   if (!names.length) {
     sel.style.display = 'none';
+    if (exportBtn) exportBtn.style.display = 'none';
     document.getElementById('trendsBody').innerHTML = '<div class="log-empty">No rated matches saved yet. Rate an official and save the match to the library to start tracking trends.</div>';
   } else {
     sel.style.display = '';
+    if (exportBtn) exportBtn.style.display = '';
     sel.innerHTML = names.map(n => `<option value="${escAttr(n)}">${escAttr(n)} (${trends[n].length})</option>`).join('');
     renderTrendChart();
   }
@@ -8233,8 +8370,11 @@ function renderTrendChart() {
 
   const avg = arr.reduce((a, p) => a + p.score, 0) / arr.length;
   const delta = arr.length > 1 ? arr[arr.length - 1].score - arr[0].score : 0;
+  // A flat delta was showing an up arrow next to a neutral colour
+  const flatDelta = Math.abs(delta) < 0.05;
   const deltaLabel = arr.length > 1
-    ? `${delta >= 0 ? '▲ +' : '▼ '}${delta.toFixed(1)} since first rated match`
+    ? (flatDelta ? 'Level since first rated match'
+                 : `${delta > 0 ? '▲ +' : '▼ '}${delta.toFixed(1)} since first rated match`)
     : 'Only one rated match so far';
   // --muted here compounds with .overall-sub's opacity and lands under AA
   const deltaColor = delta > 0.05 ? 'var(--green)' : delta < -0.05 ? 'var(--red)' : 'var(--text)';
@@ -8262,20 +8402,11 @@ function renderTrendChart() {
 // in at least two matches can show movement, so the rest are left out.
 function buildCriterionTrendHtml(arr) {
   if (!arr || arr.length < 2) return '';
-  const names = new Set();
-  arr.forEach(p => Object.keys(p.criteria || {}).forEach(c => names.add(c)));
-  const rows = [];
-  names.forEach(c => {
-    const pts = arr.filter(p => p.criteria && p.criteria[c] != null);
-    if (pts.length < 2) return;
-    const first = pts[0].criteria[c], last = pts[pts.length - 1].criteria[c];
-    rows.push({ c, first, last, delta: last - first, n: pts.length });
-  });
-  if (!rows.length) return '';
-  rows.sort((a, b) => a.delta - b.delta); // biggest declines first — the ones to talk about
-  return `<div class="section-label" style="margin-top:6px;">By Criterion</div>
+  const blocks = criterionMovementByRole(arr);
+  if (!blocks.length) return '';
+  return blocks.map(block => `<div class="section-label" style="margin-top:6px;">By Criterion — as ${escAttr(block.role)}</div>
     <div class="card">
-      ${rows.map(r => {
+      ${block.rows.map(r => {
         const flat = Math.abs(r.delta) < 0.05;
         const colour = flat ? 'var(--muted)' : r.delta > 0 ? 'var(--green)' : 'var(--red)';
         const arrow = flat ? '–' : r.delta > 0 ? '▲' : '▼';
@@ -8287,7 +8418,7 @@ function buildCriterionTrendHtml(arr) {
           <span class="finalize-stat-val" style="color:${colour};">${arrow} ${label}</span>
         </div>`;
       }).join('')}
-    </div>`;
+    </div>`).join('');
 }
 
 // Lightweight toast notification
@@ -9380,7 +9511,8 @@ function toggleKeyVisibility() {
       📈 Performance Trends
       <button class="modal-close" onclick="closeTrends()">✕</button>
     </div>
-    <select class="field-input" id="trendsOfficialSelect" onchange="renderTrendChart()" style="margin-bottom:14px;"></select>
+    <select class="field-input" id="trendsOfficialSelect" onchange="renderTrendChart()" style="margin-bottom:10px;"></select>
+    <button class="btn-secondary" id="trendsExportBtn" style="margin-bottom:14px;" onclick="exportOfficialHistory()">📄 Export Development History</button>
     <div id="trendsBody"></div>
   </div>
 </div>

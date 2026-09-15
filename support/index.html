@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PitchEval — Support</title>
+<style>
+  :root {
+    --bg: #eef0f4; --surface: #ffffff; --ink: #1a1f26; --muted: #5b6672;
+    --rule: #d3d9e1; --accent: #14487f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #21262d; --surface: #2c3138; --ink: #eceff4; --muted: #aeb7c4;
+      --rule: #424a55; --accent: #7fb2f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 20px 80px; background: var(--bg); color: var(--ink);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 44rem; margin: 0 auto; }
+  header { padding: 48px 0 22px; border-bottom: 2px solid var(--ink); }
+  h1 { font-size: clamp(26px, 5vw, 34px); line-height: 1.15; margin: 0 0 8px; letter-spacing: -0.02em; }
+  .sub { color: var(--muted); margin: 0; font-size: 15px; }
+  h2 { font-size: 19px; margin: 36px 0 8px; letter-spacing: -0.01em; }
+  h3 { font-size: 16px; margin: 22px 0 4px; }
+  p, li { margin: 0 0 12px; }
+  ul { padding-left: 22px; }
+  a { color: var(--accent); }
+  .contact {
+    background: var(--surface); border: 1px solid var(--rule);
+    border-radius: 10px; padding: 20px; margin: 22px 0;
+  }
+  .contact p:last-child { margin-bottom: 0; }
+  .email { font-size: 18px; font-weight: 650; }
+  footer {
+    margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--rule);
+    color: var(--muted); font-size: 14px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>PitchEval Support</h1>
+  <p class="sub">Match-day evaluation for soccer referee coaches</p>
+</header>
+
+<div class="contact">
+  <p>For help, questions, bug reports or feature requests, get in touch:</p>
+  <p class="email"><a href="mailto:graemeflorance@gmail.com">graemeflorance@gmail.com</a></p>
+  <p>Please include your device, your iOS version, and what you were doing when
+  the problem happened. Replies usually come within a few days.</p>
+</div>
+
+<h2>Common questions</h2>
+
+<h3>Do I need an account?</h3>
+<p>No. There is no sign-up and no login. Open the app and start a match.</p>
+
+<h3>Why does the Feedback tab ask for an API key?</h3>
+<p>The AI-written coaching narrative runs on your own Anthropic API key, which
+you enter under Settings. It is the only feature that needs one. Match tracking,
+incidents, ratings, the Library, and every export — including the printed report
+and the Development History — work without it.</p>
+
+<h3>Can I start a match on one device and finish it on another?</h3>
+<p>Yes, as long as both devices are signed into the same Apple account with
+iCloud enabled. Saved evaluations, your season schedule and the match in progress
+sync between them. Sync goes through your own iCloud, so it can take a few
+seconds to come across.</p>
+
+<h3>Why didn't my photos and video sync?</h3>
+<p>Attachments are deliberately not synced. Photos, voice notes and video clips
+stay on the device that captured them, so that large files never fill up your
+iCloud storage. Export or share them from that device.</p>
+
+<h3>I deleted something by mistake.</h3>
+<p>Deleting an event, incident or error shows an Undo option for a few seconds.
+Once that window passes the entry is gone, but deleting a saved match from the
+Library always asks you to confirm first.</p>
+
+<h3>Where is the weather coming from?</h3>
+<p>The weather field pre-fills using an approximate location derived from your
+internet connection, not your device's GPS. You can overwrite or clear it. See
+the <a href="./privacy.html">privacy policy</a> for the details.</p>
+
+<h3>How do I get my data out?</h3>
+<p>Every saved match can be exported as a printed or PDF report, as plain text,
+or as a full match log. The Development History export gathers one official's
+record across every match you have evaluated.</p>
+
+<h2>Reporting a problem</h2>
+<p>If something looks wrong in a match record, export the match log before doing
+anything else — it captures exactly what the app has stored and makes the
+problem much easier to track down. Attach it to your email.</p>
+
+<footer>
+  <p>PitchEval is an independent tool. It is not affiliated with, endorsed by, or
+  sponsored by the United States Soccer Federation, FIFA, or any referee
+  association. &middot; <a href="./privacy.html">Privacy Policy</a> &middot;
+  <a href="../">PitchEval</a></p>
+</footer>
+
+</div>
+</body>
+</html>

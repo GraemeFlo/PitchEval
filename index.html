@@ -107,7 +107,7 @@ button {
   display: none;
 }
 .key-status.ok   { background: var(--green-dim); color: var(--green); display: block; }
-.key-status.warn { background: var(--gold-dim);  color: var(--gold);  display: block; }
+.key-status.warn { background: var(--gold-dim);  color: var(--text);  display: block; }
 .settings-hint {
   font-size: 12px;
   color: var(--muted);
@@ -1086,7 +1086,7 @@ textarea { resize: none; line-height: 1.5; min-height: 60px; }
 }
 .cmi-toggle-badge {
   background: var(--red);
-  color: white;
+  color: var(--on-red);
   font-size: 11px;
   font-weight: 700;
   font-family: 'DM Mono', monospace;
@@ -1110,7 +1110,7 @@ textarea { resize: none; line-height: 1.5; min-height: 60px; }
 .cre-btn:active { background: var(--red-dim); border-color: var(--red); }
 .cre-toggle-badge {
   background: var(--red);
-  color: white;
+  color: var(--on-red);
   font-size: 11px;
   font-weight: 700;
   font-family: 'DM Mono', monospace;
@@ -1149,9 +1149,9 @@ textarea { resize: none; line-height: 1.5; min-height: 60px; }
   color: var(--on-accent);
 }
 .period-btn.et { border-color: rgba(88,166,255,0.4); color: var(--blue); }
-.period-btn.et.active { background: var(--blue); border-color: var(--blue); color: white; }
+.period-btn.et.active { background: var(--blue); border-color: var(--blue); color: var(--on-accent); }
 .period-btn.pso-btn-period { border-color: rgba(248,81,73,0.4); color: var(--red); }
-.period-btn.pso-btn-period.active { background: var(--red); border-color: var(--red); color: white; }
+.period-btn.pso-btn-period.active { background: var(--red); border-color: var(--red); color: var(--on-red); }
 
 /* ── PSO TRACKER ── */
 .pso-board {
@@ -1471,10 +1471,14 @@ textarea { resize: none; line-height: 1.5; min-height: 60px; }
   --accent: var(--gold);
   --accent-dim: var(--gold-dim);
   --on-accent: #131a27;
+  /* --red has the same problem as the accent: it is a light pink on dark
+     themes and a deep crimson on light ones, so text FILLED on it must
+     invert too. White on the dark-theme red is 2.2:1. */
+  --on-red: #3a0d10;
 }
-[data-theme="light"], [data-theme="auto"] { --on-accent: #ffffff; }
+[data-theme="light"], [data-theme="auto"] { --on-accent: #ffffff; --on-red: #ffffff; }
 @media (prefers-color-scheme: dark) {
-  [data-theme="auto"] { --on-accent: #131a27; }
+  [data-theme="auto"] { --on-accent: #131a27; --on-red: #3a0d10; }
 }
 [data-theme="dark"] {
   --bg: #2c3138;
@@ -2506,6 +2510,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
   border-radius: 12px;
   font-size: 13px;
   border: 1px solid rgba(91,155,240,0.4);
+  color: var(--text);
 }
 
 /* ── THEME / SETTINGS BUTTONS ── */
@@ -3386,7 +3391,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
       <button class="modal-close" onclick="closeCRE()">✕</button>
     </div>
     <div id="creModalBody"></div>
-    <button class="btn-primary" onclick="saveCRE()" style="background:var(--red);color:white;">Save Error</button>
+    <button class="btn-primary" onclick="saveCRE()" style="background:var(--red);color:var(--on-red);">Save Error</button>
   </div>
 </div>
 

@@ -1797,6 +1797,57 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
   [data-theme="auto"] .clock-btn.primary { color: #08090e; }
 }
 
+/* ── NARROW-WIDTH RESILIENCE ──
+   Large-text mode applies zoom to the document, which shrinks the effective
+   layout width (327 CSS px becomes ~277 at 1.18). Several containers were
+   rigid enough that the overflow clipped real content: team names collapsed
+   to "R...", the Guide tab and the period label ran off the right edge, and
+   the bottom row of event buttons was cut off.
+
+   These four make those containers fluid. They are not large-text specific —
+   the same rigidity would bite on a small phone (an SE is 320pt). */
+.clock-bar { flex-wrap: wrap; justify-content: center; row-gap: 8px; }
+.tab { min-width: 0; }
+.event-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.team-name { min-width: 0; }
+
+/* The score is the single widest element in the scoreboard, and the team names
+   are flex children that were collapsing to nothing beside it — "Rapids" was
+   rendering 2px wide. Give the score back some size and let the names wrap
+   instead of being clipped to a letter. The tab labels get a smaller face so
+   six of them still fit a row rather than running into each other. */
+/* Matching #panel-live's specificity: those rules set the Live tab's own sizes
+   and would otherwise keep the 48px score and 13px team names regardless. */
+html.large-text #panel-live .score-display { font-size: 28px; letter-spacing: 0; }
+html.large-text #panel-live .team-name { white-space: normal; font-size: 11px; }
+html.large-text #panel-live .clock-display { font-size: 24px; min-width: 0; }
+html.large-text .clock-period { white-space: nowrap; }
+html.large-text .tabs { gap: 1px; padding: 2px; }
+html.large-text .tab { font-size: 10px; letter-spacing: 0; padding: 7px 2px; }
+
+/* ── TAP TARGETS ──
+   Apple's minimum is 44x44pt and several controls sat under it: the tabs at
+   32, Add Match Event at 35, the period buttons at 38, the clock buttons at
+   39. This is used one-handed at a touchline while watching play, and a
+   mis-tap on Reset costs a match, so the margin matters.
+
+   The three in the panel body grow for real — about 26px total, which the
+   layout can absorb. The tab row instead keeps its height and expands its hit
+   area with a transparent pseudo-element, because the header is on screen
+   permanently and vertical space there is expensive. The tabs sit in a single
+   row with nothing above or below, so a 6px expansion cannot overlap another
+   target. */
+.clock-btn { min-height: 44px; }
+.period-btn { min-height: 44px; }
+.btn-secondary { min-height: 44px; }
+
+.tab { position: relative; }
+.tab::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: -6px; bottom: -6px;
+}
+
 /* ── UNDO TOAST ── */
 .undo-toast {
   position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%) translateY(8px);
@@ -3247,7 +3298,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
     <div class="panel" id="panel-guide">
       <div class="card" style="margin-bottom:14px;">
         <div class="guide-h">📘 PitchEval — User Guide</div>
-        <div class="guide-p">A referee evaluation &amp; match-logging tool for US Soccer Referee Coaches. Track a match live, then turn that record into a structured, coaching-focused evaluation of the crew. All data stays on your device.</div>
+        <div class="guide-p">A referee evaluation &amp; match-logging tool for US Soccer Referee Coaches. Track a match live, then turn that record into a structured, coaching-focused evaluation of the crew. Your data stays private to you — on your device, and synced only between your own devices via your personal iCloud.</div>
       </div>
 
       <div class="card" style="margin-bottom:14px;display:flex;gap:8px;">
@@ -3274,9 +3325,10 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
       <div class="section-label">Live Match Tracking</div>
       <div class="card">
         <div class="guide-p"><strong>Clock</strong> — Press <strong>Start</strong> to kick off; it auto-syncs to 1st Half and keeps accurate time even if the screen locks or you switch apps.</div>
-        <div class="guide-p"><strong>Periods</strong> — H/T, 2nd H, F/T, ET, and Kicks From the Mark. Selecting H/T, F/T, and ET Half advances the clock to the correct running time based on your format.</div>
-        <div class="guide-p"><strong>Score &amp; Fouls</strong> — The scoreboard updates automatically when a goal is logged, with a per-team foul tally beneath it.</div>
-        <div class="guide-p"><strong>Log an event</strong> — Tap a button (Foul, Offside, Yellow, Red, Goal, Penalty Kick) and fill in the tap-to-select fields.</div>
+        <div class="guide-p"><strong>Periods</strong> — H/T, 2nd H, F/T, ET, and Kicks From the Mark. Selecting H/T, F/T, and ET Half advances the clock to the correct running time based on your format. Each boundary opens a summary of the period that just ended — including both halves of extra time.</div>
+        <div class="guide-p"><strong>Score &amp; Fouls</strong> — The scoreboard updates automatically when a goal is logged, with a per-team foul tally beneath it, split by half (and by extra-time period once one is used). If a player reaches three fouls, a <strong>persistent infringement</strong> warning appears under the scoreboard while play continues — the threshold for a C3 caution.</div>
+        <div class="guide-p"><strong>Log an event</strong> — Tap a button (Foul, Offside, Yellow, Red, Goal, Penalty Kick) and fill in the tap-to-select fields. Every event can carry an optional <strong>player number</strong>.</div>
+        <div class="guide-p"><strong>Cards record their foul</strong> — A caution for unsporting behaviour or persistent infringement, and a send-off for serious foul play or DOGSO, also add the foul behind it to the count. Cautions and send-offs that are not fouls — dissent, delaying the restart, violent conduct, offensive language — do not.</div>
       </div>
 
       <div class="section-label">Smart Sequences</div>
@@ -3297,6 +3349,8 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
       <div class="section-label">Match Log</div>
       <div class="card">
         <div class="guide-p">Every event is timestamped in the Match Log (bottom bar). <strong>Edit</strong> any entry (it re-opens the original form, pre-filled), <strong>Flag</strong> entries for post-match discussion, <strong>Delete</strong>, or <strong>Save</strong> the log as an editable text file via the iOS Share Sheet.</div>
+        <div class="guide-p"><strong>Deleting is undoable</strong> — an <strong>Undo</strong> button appears for a few seconds after any deletion, so a mis-tap during play costs nothing. A CMI or CRE and its line in the log are the same record: removing either removes both.</div>
+        <div class="guide-p" style="margin-bottom:0;">Entries you add on a different form — plain notes, CMI and CRE lines, period markers — can also be given a player number when you edit them.</div>
       </div>
 
       <div class="section-label">Ratings &amp; Feedback</div>
@@ -3322,7 +3376,9 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
 
       <div class="section-label">Data &amp; Privacy</div>
       <div class="card">
-        <div class="guide-p" style="margin-bottom:0;">All match data, the library, and your profile are stored locally on your device. Weather uses your approximate (IP-based) location. AI feedback is sent directly to Anthropic with your own key — nothing routes through a third-party server.</div>
+        <div class="guide-p">Match data, the library and your profile are stored on your device. If you are signed into iCloud, your saved matches, season schedule and the match currently in progress also sync privately between your own devices through your personal iCloud account — so a match started on your iPhone can be continued on your iPad. Nothing is shared with anyone else, and no account or sign-up is needed.</div>
+        <div class="guide-p">Photos, voice notes and video stay on the device that captured them and are never synced.</div>
+        <div class="guide-p" style="margin-bottom:0;">Weather uses your approximate (IP-based) location. AI feedback is sent directly to Anthropic with your own key — nothing routes through a third-party server.</div>
       </div>
 
       <div style="height:20px;"></div>

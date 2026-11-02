@@ -4114,7 +4114,7 @@ button, select, input, textarea, .tab, .period-btn, .event-btn, .bottom-tab, .th
       <div class="field-label">Data Backup</div>
       <p class="settings-hint" style="margin-top:0;">Save all your matches, ratings, and settings to a file — useful as a backup or to move your data to another device.</p>
       <button class="btn-secondary" style="width:100%;margin-bottom:8px;" onclick="exportAllData()">⬇️ Export Backup File</button>
-      <button class="btn-secondary" style="width:100%;" onclick="document.getElementById('importBackupInput').click()">⬆️ Import Backup File</button>
+      <button class="btn-secondary" style="width:100%;" onclick="document.getElementById('importBackupInput')?.click()">⬆️ Import Backup File</button>
       <input type="file" id="importBackupInput" accept="application/json,.json" style="display:none;" onchange="handleImportBackupChange(event)">
       <div class="key-status" id="backupStatus"></div>
     </div>
@@ -7884,16 +7884,31 @@ function handleImportBackupChange(ev) {
   ev.target.value = '';
   if (!file) return;
   const statusEl = document.getElementById('backupStatus');
+
+  // Validate file size (max 10MB)
+  if (file.size > 10 * 1024 * 1024) {
+    if (statusEl) { statusEl.textContent = 'File is too large (max 10MB).'; statusEl.style.color = 'var(--red)'; }
+    return;
+  }
+
   const reader = new FileReader();
   reader.onload = () => {
     let data;
     try { data = JSON.parse(String(reader.result)); }
     catch (e) {
-      if (statusEl) { statusEl.textContent = 'That file is not a valid backup.'; statusEl.style.color = 'var(--red)'; }
+      if (statusEl) { statusEl.textContent = 'That file is not a valid backup — JSON parse error.'; statusEl.style.color = 'var(--red)'; }
       return;
     }
-    if (!data || !Array.isArray(data.library)) {
+    if (!data || typeof data !== 'object') {
       if (statusEl) { statusEl.textContent = 'That file is not a valid PitchEval backup.'; statusEl.style.color = 'var(--red)'; }
+      return;
+    }
+    if (!Array.isArray(data.library)) {
+      if (statusEl) { statusEl.textContent = 'That file is not a valid PitchEval backup — missing match library.'; statusEl.style.color = 'var(--red)'; }
+      return;
+    }
+    if (!data.profile || typeof data.profile !== 'object') {
+      if (statusEl) { statusEl.textContent = 'That file is not a valid PitchEval backup — missing profile data.'; statusEl.style.color = 'var(--red)'; }
       return;
     }
 
@@ -10899,10 +10914,12 @@ async function autoPopulateWeather() {
   try {
     // Approximate location by IP — no device permission needed
     const ipRes = await fetch('https://ipwho.is/');
+    if (!ipRes.ok) return;
     const ip = await ipRes.json();
     if (!ip || ip.success === false || ip.latitude == null) return;
     const lat = ip.latitude, lon = ip.longitude;
     const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,wind_speed_10m&temperature_unit=fahrenheit&wind_speed_unit=mph`);
+    if (!wRes.ok) return;
     const w = await wRes.json();
     if (!w || !w.current) return;
     const temp = Math.round(w.current.temperature_2m);
@@ -10922,9 +10939,11 @@ async function autoPopulateWeather() {
 // in the DOM yet during this synchronous top-of-page init. Restoring is
 // always the final authority: it overwrites any defaults or profile pre-fills
 // the code below sets in the meantime, so running it later is safe.
-document.addEventListener('DOMContentLoaded', restoreAutosaveIfPresent);
-document.addEventListener('DOMContentLoaded', setupTabletLayout);
-document.addEventListener('DOMContentLoaded', watchForCloseButtons);
+document.addEventListener('DOMContentLoaded', () => {
+  restoreAutosaveIfPresent();
+  setupTabletLayout();
+  watchForCloseButtons();
+});
 
 // Pre-fill evaluator from saved profile
 function prefillEvaluatorFromProfile() {
